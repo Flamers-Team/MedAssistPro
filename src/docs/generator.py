@@ -440,43 +440,45 @@ if __name__ == "__main__":
 
     gen = DocumentGenerator(output_dir="data/documents")
 
-    # Dados de exemplo
+    # Dados de DEMONSTRAÇÃO (placeholder claro, não dados reais)
+    # Esses valores SÃO placeholders. Em produção, vêm do input do médico.
     dados_exemplo = {
-        "paciente": "Maria Silva",
-        "idade": 45,
-        "sexo": "Feminino",
-        "medico": "Dr. João Santos",
-        "crm": "12345-DF",
-        "queixa_principal": "Paciente relata dor torácica em aperto há 3 horas, com irradiação para braço esquerdo.",
-        "exame_fisico": "PA 140/90 mmHg, FC 88 bpm, SatO2 96%, ausculta cardíaca normal.",
+        "paciente": "[PACIENTE - inserir nome]",
+        "idade": "[IDADE]",
+        "sexo": "[SEXO]",
+        "medico": "[MÉDICO - inserir nome]",
+        "crm": "[CRM-XX]",
+        "queixa_principal": "[Queixa principal do paciente]",
+        "exame_fisico": "[Resultados do exame físico]",
         "hipoteses": [
-            {"cid10": "I21", "nome": "Infarto Agudo do Miocárdio", "probabilidade": "alta", "fonte": "PMC-12345"},
-            {"cid10": "I20", "nome": "Angina Instável", "probabilidade": "média", "fonte": "SOP-CARDIO-007"},
+            {"cid10": "[CÓDIGO]", "nome": "[Hipótese diagnóstica]", "probabilidade": "[alta/média/baixa]", "fonte": "[Fonte]"},
         ],
         "exames_sugeridos": [
-            {"nome": "ECG 12 derivações", "justificativa": "Investigar isquemia"},
-            {"nome": "Troponina I", "justificativa": "Marcador de necrose miocárdica"},
+            {"nome": "[Exame]", "justificativa": "[Justificativa]"},
         ],
         "medicacoes_sugeridas": [
-            {"nome": "AAS", "dose": "200mg", "frequencia": "dose única VO", "NOTA": "VALIDAÇÃO MÉDICA OBRIGATÓRIA"},
-            {"nome": "Atorvastatina", "dose": "40mg", "frequencia": "1x/dia VO", "NOTA": "VALIDAÇÃO MÉDICA OBRIGATÓRIA"},
+            {"nome": "[Medicamento]", "dose": "[dose]", "frequencia": "[freq]", "NOTA": "VALIDAÇÃO MÉDICA OBRIGATÓRIA"},
         ],
-        "observacoes": "Caso requer investigação adicional antes de conduta definitiva.",
-        "dias_afastamento": "7",
-        "motivo": "investigação cardiológica",
+        "observacoes": "[Observações]",
+        "dias_afastamento": "[N]",
+        "motivo": "[Motivo]",
     }
 
+    print("⚠️  AVISO: Estes são dados de DEMONSTRAÇÃO (placeholders).")
+    print("    Em produção, o gradio_app.py coleta dados do médico via input.")
+    print()
+
     p1 = gen.gerar_prontuario(dados_exemplo)
-    print(f"✅ Prontuário: {p1}")
+    print(f"✅ Prontuário gerado: {p1}")
 
     p2 = gen.gerar_atestado(dados_exemplo)
-    print(f"✅ Atestado:   {p2}")
+    print(f"✅ Atestado gerado:   {p2}")
 
     p3 = gen.gerar_receita(dados_exemplo)
-    print(f"✅ Receita:    {p3}")
+    print(f"✅ Receita gerada:    {p3}")
 
-    p4 = gen.gerar_laudo({**dados_exemplo, "descricao": "Laudo de exame cardiológico.", "conclusao": "Sugere-se investigação adicional."})
-    print(f"✅ Laudo:      {p4}")
+    p4 = gen.gerar_laudo({**dados_exemplo, "descricao": "[Descrição]", "conclusao": "[Conclusão]"})
+    print(f"✅ Laudo gerado:      {p4}")
 
     print(f"\n📁 Arquivos em: {gen.output_dir}")
     print("="*60)
