@@ -85,6 +85,11 @@ A branch `main` é a única branch ativa. Todo o código completo está nela.
 
 **⭐ ATUALIZAÇÃO ago/2026**: O dataset `anvisa_medicamentos.csv` (que só tinha metadados) foi substituído pelo **ChatBulário** — pares pergunta-resposta com texto completo das bulas em PT-BR, 9 seções padronizadas (RDC 47/2009). Resolveu o problema do RAG multilíngue. Detalhes em [`docs/GUIA_DATASETS.md`](docs/GUIA_DATASETS.md).
 
+⚠️ **IMPORTANTE**: Datasets em `data/raw/` estão no `.gitignore` (PHI potencial, tamanhos grandes). Use o script automático:
+```bash
+python scripts/setup_data_colab.py  # No Colab
+```
+
 ⚠️ **IMPORTANTE**: Todos os datasets com dados pessoais foram processados por
 `src/data/01_anonimizar.py` (MedQuAD) ou `src/data/04_anonimizar_synthetic.py`
 (Synthetic Notes) antes de uso em fine-tuning/RAG.

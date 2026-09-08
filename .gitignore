@@ -165,3 +165,6 @@ docs/index.html
 
 # Embeddings em cache (~250MB, regeneráveis)
 .cache/
+
+# Script setup (regenerável, baixa dados públicos)
+scripts/setup_data_colab.py
