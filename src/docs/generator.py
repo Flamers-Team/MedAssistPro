@@ -465,7 +465,7 @@ if __name__ == "__main__":
     }
 
     print("⚠️  AVISO: Estes são dados de DEMONSTRAÇÃO (placeholders).")
-    print("    Em produção, o gradio_app.py coleta dados do médico via input.")
+    print("    Em produção, a interface web coleta os dados do médico via input.")
     print()
 
     p1 = gen.gerar_prontuario(dados_exemplo)

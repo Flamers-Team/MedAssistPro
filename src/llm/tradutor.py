@@ -3,7 +3,7 @@ Tradução PT-BR <-> EN com MarianMT (Helsinki-NLP).
 
 Sem unsloth. Só usa `transformers` (MarianMTModel/MarianTokenizer). Serve para
 adaptar a LLM (fine-tunada em inglês, no MedQuAD) a relatos/perguntas em
-português na interface Gradio.
+português na interface web.
 
 Robustez: se os modelos não carregarem, os métodos viram *passthrough*
 (retornam o texto original) e a UI continua funcionando em inglês.

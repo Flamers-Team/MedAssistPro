@@ -352,7 +352,7 @@ def node_validacao(state, llm_client):
 def node_hitl(state):
     """Nó 5: HITL — PAUSA aguardando médico."""
     # Este nó SEMPRE pausa o grafo.
-    # O médico recebe a resposta via UI (Gradio) e decide:
+    # O médico recebe a resposta via UI web e decide:
     # - Aprovar como está → gerar_docs
     # - Editar texto → voltar para sintese com edição
     # - Rejeitar → END

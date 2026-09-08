@@ -161,38 +161,38 @@ print(bot.perguntar("O que é diabetes?"))
 
 Ver mais detalhes em `docs/MANUAL_UI.md` (seção "Tradução PT-BR ↔ EN") e `src/llm/assistente_traduzido.py`.
 
-## 🖥️ Interface Gradio (UI do Médico)
+## 🖥️ Interface Web (UI do Médico)
 
-O projeto inclui interface web completa em Gradio com 4 abas:
+O projeto usa uma interface moderna em React + Vite como frontend principal, com login, consulta clínica, auditoria e documentos.
 
 ```bash
-# Instalar dependência
-pip install gradio==4.44.0
+# 1. Instalar dependências do frontend
+cd frontend
+npm install
 
-# Rodar a UI
-python src/ui/gradio_app.py
+# 2. Rodar a interface local
+npm run dev -- --host 127.0.0.1 --port 3000
 ```
 
 **Como acessar**:
 
 | Modo | URL | Quando usar |
 |---|---|---|
-| Local | `http://127.0.0.1:7860` | Desenvolvimento |
-| Mobile (mesma WiFi) | `http://<IP-do-PC>:7860` | Médico no celular/tablet |
-| Público | `share=True` gera URL `xxx.gradio.live` (válida 72h) | Demonstração/vídeo |
+| Local | `http://127.0.0.1:3000` | Desenvolvimento |
+| Rede local | `http://<IP-do-PC>:3000` | Demonstração interna |
 
-**Credenciais padrão** (mude em produção):
+**Credenciais padrão**:
 - Usuário: `medico`
 - Senha: `demo123`
 
-**Abas da interface**:
+**Paineis da interface**:
 
-1. **📋 Consulta** — Médico insere relato, sistema retorna triagem + RAG + síntese + HITL
-2. **📊 Auditoria** — Dashboard de logs SQLite (eventos, latência, custos)
-3. **📁 Documentos** — Lista de PDFs gerados (prontuário, atestado, receita)
-4. **⚙️ Config** — Informações do sistema + versões
+1. **📋 Consulta** — Médico insere relato e acompanha triagem + RAG + síntese
+2. **📊 Auditoria** — Dashboard de logs SQLite e métricas
+3. **📁 Documentos** — Lista de PDFs gerados
+4. **⚙️ Config** — Informações do sistema e versões
 
-Ver detalhes em `src/ui/gradio_app.py` (18 KB, documentado).
+O frontend ativo está em `frontend/src/App.jsx` e `frontend/src/styles.css`.
 
 ## 📄 Licença
 

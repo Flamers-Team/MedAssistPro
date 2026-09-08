@@ -25,6 +25,35 @@ from pathlib import Path
 
 import gradio as gr
 
+# Compatibilidade com gradio_client 1.x/4.x quando o schema usa bool em vez de dict.
+try:
+    from gradio_client import utils as gradio_client_utils
+
+    def _safe_get_type(schema):
+        if not isinstance(schema, dict):
+            return {}
+        if "const" in schema:
+            return "const"
+        if "enum" in schema:
+            return "enum"
+        if "type" in schema:
+            return schema["type"]
+        if schema.get("$ref"):
+            return "$ref"
+        if schema.get("oneOf"):
+            return "oneOf"
+        if schema.get("anyOf"):
+            return "anyOf"
+        if schema.get("allOf"):
+            return "allOf"
+        if "type" not in schema:
+            return {}
+        raise ValueError(f"Cannot parse type for {schema}")
+
+    gradio_client_utils.get_type = _safe_get_type
+except Exception:
+    pass
+
 # Adicionar raiz ao path pra imports funcionarem
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
@@ -492,7 +521,7 @@ if __name__ == "__main__":
 
     demo.launch(
         share=os.getenv("GRADIO_SHARE", "0").lower() in ("1", "true", "yes"),
-        server_name="0.0.0.0",
+        server_name="127.0.0.1",
         server_port=int(os.getenv("GRADIO_SERVER_PORT", "7860")),
         auth=("medico", "demo123"),
         show_error=True,

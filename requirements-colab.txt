@@ -19,7 +19,6 @@ sentence-transformers>=3.0
 sacremoses
 
 # --- App / UI / Docs / Logs ---
-gradio==4.44.1
 reportlab>=4.2
 loguru>=0.7
 
