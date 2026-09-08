@@ -434,13 +434,11 @@ Techchalleng3/                          (GitHub: Flamers-Team/Techchalleng3)
 ├── .gitattributes                       Git LFS para datasets grandes
 ├── docs/
 │   ├── RELATORIO_TECNICO_PARA_EQUIPE.md      Relatório técnico principal
-│   ├── MANUAL_DIDATICO_PARA_EQUIPE.md       Manual didático (pra leigos)
 │   ├── MANUAL_UI.md                          Manual de uso da UI
 │   ├── GUIA_DATASETS.md                     Guia dos datasets
 │   ├── MODEL_CARD_HUGGINGFACE.md            Model Card pro HF
 │   ├── index.html                           HTML do Space HF
 │   ├── RELATORIO_TECNICO_PARA_EQUIPE.docx   Versão DOCX
-│   ├── MANUAL_DIDATICO_PARA_EQUIPE.docx
 │   ├── MANUAL_UI.docx
 │   ├── GUIA_DATASETS.docx
 │   └── TECHCHALLENGE_FASE3_PROJETO_COMPLETO.docx   ← Este documento
@@ -615,7 +613,6 @@ Techchalleng3/                          (GitHub: Flamers-Team/Techchalleng3)
 - **Issues/bugs**: abrir no GitHub Issues do repo
 - **Documentação adicional**: `docs/RELATORIO_TECNICO_PARA_EQUIPE.md`
 - **Guia de datasets**: `docs/GUIA_DATASETS.md`
-- **Manual didático**: `docs/MANUAL_DIDATICO_PARA_EQUIPE.md`
 - **Manual UI**: `docs/MANUAL_UI.md`
 
 ---

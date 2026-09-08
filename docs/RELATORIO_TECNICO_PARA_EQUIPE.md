@@ -821,6 +821,6 @@ dashboard_resumo(horas=24)
 
 ---
 
-**Relatório gerado em**: 31/08/2026  
-**Versão do projeto**: 2.0 (com fine-tuning concluído + tradução PT-BR)  
+**Relatório gerado em**: 08/09/2026
+**Versão do projeto**: 2.2 (com RAG completo 25k docs + sem mocks)
 **Próxima atualização**: após deploy/demo

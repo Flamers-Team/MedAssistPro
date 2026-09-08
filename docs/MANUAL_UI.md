@@ -361,6 +361,58 @@ python src/llm/assistente_traduzido.py
 
 ---
 
+# 🆕 Atualização ago/2026 (08/09)
+
+Esta seção documenta as **mudanças recentes** que não estão refletidas no corpo principal do manual.
+
+## Mudanças Críticas
+
+### 1. Remoção do mock PMC (fontes inventadas)
+
+**Antes**: `retrieve_pmc()` retornava fontes falsas tipo `PMC-10000`, `PMC-10001`.
+
+**Agora**: Função removida. RAG usa apenas **ChatBulário** (bulas reais em PT-BR).
+
+**Impacto**: 
+- ✅ Nenhuma fonte falsa na UI
+- ✅ Mensagens de erro claras se RAG falhar
+- ❌ Sem acesso à "literatura científica" (você pode adicionar AWS S3 depois se quiser)
+
+### 2. RAG completo com 3 fontes (25.832 docs)
+
+| Collection | Docs | Conteúdo |
+|---|---|---|
+| `chatbulario` | 10.000 | Bulas ANVISA (PT-BR) |
+| `cid10` | 12.451 | Códigos de doenças |
+| `synthetic` | 3.381 | Notas clínicas sintéticas |
+| **Total** | **25.832** | |
+
+### 3. Tratamento de erro robusto
+
+- `LLMNotAvailableError` levantada quando modelo não carrega
+- Mensagens de erro com instruções de como resolver
+- Não retorna mais dados falsos/fixos
+
+### 4. Refatoração `docs/generator.py`
+
+**Antes**: CRM hardcoded `"12345-DF"`, dados de exemplo fixos.
+
+**Agora**: Placeholders claros (`"[PACIENTE - inserir nome]"`, `"[CRM-XX]"`).
+
+**Em produção**: dados vêm do input do médico via gradio_app.py.
+
+### 5. Limpeza de cache
+
+Removidos 178 MB de arquivos `.arrow` (cache HuggingFace temporário).
+
+## Próximos passos
+
+- [ ] Gravar vídeo demo
+- [ ] Deploy HuggingFace Space (opcional, pago)
+- [ ] Substituir `PMC-10000` mock se você precisar de literatura
+
+---
+
 ## 🗄️ RAG — Base de Conhecimento (ATUALIZADO AGO/2026)
 
 ### O que mudou
@@ -399,6 +451,6 @@ python src/rag/build_index_chatbulario.py
 
 ---
 
-**Última atualização**: 31/08/2026  
-**Versão da UI**: 1.2 (com ChatBulário RAG + tradução PT-BR)  
+**Última atualização**: 08/09/2026
+**Versão da UI**: 1.2 (com ChatBulário RAG + tradução PT-BR + tratamento de erro robusto)
 **Compatibilidade**: Gradio 4.44+, Python 3.10+
