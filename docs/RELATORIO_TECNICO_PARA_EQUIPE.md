@@ -682,19 +682,26 @@ Techchalleng3/                          (GitHub: Flamers-Team/Techchalleng3)
 | 20 | README + documentação | ✅ | `README.md`, `docs/` |
 | 21 | Relatório DOCX técnico | ✅ | `docs/*.docx` |
 | 22 | DOCX atualizado para equipe | ✅ | `RELATORIO_TECNICO_EQUIPE_FINAL.docx` |
+| 23 | Substituição ANVISA → ChatBulário (10k bulas PT-BR) | ✅ | `src/rag/build_index_chatbulario.py` |
+| 24 | Remoção dos mocks PMC (fontes inventadas) | ✅ | `src/rag/retriever.py` |
+| 25 | Tratamento de erro robusto (RuntimeError) | ✅ | `src/rag/retriever.py`, `src/ui/gradio_app.py` |
+| 26 | Modelo publicado no HuggingFace (público) | ✅ | `michelleAnogueira/biomistral-medquad-lora` |
+| 27 | Space Static no HuggingFace | ✅ | `michelleAnogueira/techchalleng3-demo` |
+| 28 | Script setup_data_colab.py (baixa dados automaticamente) | ✅ | `scripts/setup_data_colab.py` |
+| 29 | Notebook `rodarcolab.ipynb` corrigido (patches + caminhos) | ✅ | `notebooks/rodarcolab.ipynb` |
+| 30 | UI testada no Colab (URL gradio.live funciona) | ✅ | `notebooks/rodarcolab.ipynb` |
 
 ### ⏳ PENDENTE
 
 | # | Etapa | Tempo Est. | Prioridade |
 |---|---|---|---|
-| 1 | **Testar tradutor PT-BR no Colab** | 15 min | 🔴 Alta |
-| 2 | **Gravar vídeo demo (≤15min)** | 2h | 🔴 Alta |
-| 3 | **README com instruções de uso do tradutor** | 30 min | 🟡 Média |
-| 4 | **Deploy (HuggingFace Spaces ou outro)** | 1h | 🟢 Baixa (opcional) |
-| 5 | **Relatório técnico final em PDF** | 1h | 🔴 Alta |
-| 6 | **Substituir mocks por chamadas reais** | 2h | 🟡 Média |
-| 7 | **ReportLab para PDFs reais (atestado, receita)** | 2h | 🟡 Média |
-| 8 | **Dicionário de termos médicos PT-BR** | 1h | 🟢 Baixa |
+| 1 | **Gravar vídeo demo (≤15min)** | 2h | 🔴 Alta |
+| 2 | **ReportLab para PDFs reais (atestado, receita)** | 2h | 🟡 Média |
+| 3 | **Substituir mocks por chamadas reais** (`_mock_response` em `client.py`) | 2h | 🟡 Média |
+| 4 | **Refatorar `docs/generator.py`** (CRM hardcoded "12345-DF") | 1-2h | 🟡 Média |
+| 5 | **Testes integrados** end-to-end (UI + LLM + RAG + HITL + PDFs) | 1h | 🟡 Média |
+| 6 | **Limpar cache HuggingFace** local | 5 min | 🟢 Baixa |
+| 7 | **HuggingFace Spaces Gradio** (deploy com UI rodando 24/7) | 30 min | 🟢 Baixa (opcional, pago) |
 
 ---
 
@@ -818,6 +825,42 @@ init_db()
 # Ver resumo de atividade
 dashboard_resumo(horas=24)
 ```
+
+### 12.6. Setup Completo no Google Colab (⭐ RECOMENDADO)
+
+**Notebook**: `notebooks/rodarcolab.ipynb` (31 células, ~15 min de execução)
+
+**O que faz**:
+1. Monta Google Drive
+2. Instala dependências (numpy, pydantic, chromadb, gradio, unsloth)
+3. Clona repositório
+4. Copia modelo LoRA do Drive
+5. Aplica patch gradio_client (corrige `TypeError: bool is not iterable`)
+6. Cópia do modelo pro caminho que a UI espera
+7. Indexa ChatBulário (RAG)
+8. Patch chromadb (np.float_ → np.float64)
+9. Carrega RAG + LLM
+10. Sobe UI Gradio (gera URL pública tipo `https://xxxxx.gradio.live`)
+
+**Setup automático de dados** (alternativa):
+```bash
+# Baixa todos os datasets públicos automaticamente
+python scripts/setup_data_colab.py
+
+# Baixa: MedQuAD, ChatBulário, CID-10, Synthetic Notes
+# Tempo: ~10 min
+```
+
+**Patches aplicados no notebook**:
+- ✅ `gradio_client/utils.py` — `'if "enum" in schema:'` → `isinstance(schema, dict) and "enum" in schema:`
+- ✅ `chromadb/types.py` — `np.float_` → `np.float64`
+- ✅ `huggingface_hub` downgrade para 0.20.0 (HfFolder ainda existe)
+- ✅ `share=False` → `share=True` (gera URL pública)
+
+**Caminhos importantes**:
+- Modelo fine-tuned: `/content/drive/MyDrive/techchallenge_fase3/biomistral-medquad-lora/`
+- Modelo copiado: `/content/Techchalleng3/biomistral-medquad-lora/` (caminho que UI espera)
+- ChromaDB: `/content/Techchalleng3/data/processed/chroma_index/`
 
 ---
 

@@ -81,7 +81,7 @@ demo.launch(share=True, ...)  # ← mudar pra True
    - `requirements.txt` (gerar abaixo)
 4. URL final: `https://huggingface.co/spaces/seu-user/assistente-medico`
 
-**`requirements.txt`** mínimo:
+| `requirements.txt` mínimo:
 ```
 gradio==4.44.0
 huggingface_hub<0.24
@@ -89,6 +89,58 @@ chromadb==0.5.5
 sentence-transformers
 loguru
 ```
+
+### Opção 4: Google Colab (para testes)
+
+**Vantagens**: GPU A100 grátis, fácil de demonstrar, rápido pra testar  
+**Quando usar**: desenvolvimento, demonstração para equipe, validação de modelo
+
+**Como fazer**:
+1. Abra o notebook: `notebooks/rodarcolab.ipynb`
+2. Execute as células em ordem
+3. O notebook cuida de:
+   - Montar Google Drive
+   - Instalar dependências
+   - Clonar repositório
+   - Copiar modelo LoRA
+   - Indexar RAG (ChatBulário)
+   - Subir UI
+
+**⚠️ IMPORTANTE**: Antes de subir a UI, garanta que os patches foram aplicados:
+
+**Patch 1 — gradio_client** (corrige `TypeError: argument of type 'bool' is not iterable`):
+```python
+import gradio_client, os
+gc_path = os.path.join(os.path.dirname(gradio_client.__file__), "utils.py")
+with open(gc_path, "r") as f: content = f.read()
+
+patches = [
+    ('if "enum" in schema:', 'if isinstance(schema, dict) and "enum" in schema:'),
+    ('if "const" in schema:', 'if isinstance(schema, dict) and "const" in schema:'),
+]
+for bug, fix in patches:
+    if bug in content:
+        content = content.replace(bug, fix)
+with open(gc_path, "w") as f: f.write(content)
+```
+
+**Patch 2 — caminho do modelo** (UI espera `/content/Techchalleng3/biomistral-medquad-lora`):
+```python
+import shutil
+from pathlib import Path
+SOURCE = Path("/content/biomistral-medquad-lora")
+TARGET = Path("/content/Techchalleng3/biomistral-medquad-lora")
+if not TARGET.exists() and SOURCE.exists():
+    shutil.copytree(SOURCE, TARGET)
+```
+
+**Patch 3 — huggingface_hub downgrade** (corrige `ImportError: HfFolder`):
+```bash
+pip install "huggingface_hub==0.20.0"
+```
+
+**Tempo total**: ~15 min (1ª vez, com download de dados e modelo)  
+**URL gerada**: tipo `https://xxxxx.gradio.live` — funciona em qualquer dispositivo do mundo
 
 ---
 

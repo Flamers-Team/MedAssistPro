@@ -31,9 +31,9 @@ pipeline_tag: text-generation
 
 > **Documento técnico definitivo** — usado pelo professor pra avaliar o projeto. Contém TODA a arquitetura, decisões, código e resultados.
 >
-> **Status**: ✅ Fine-tuning concluído + ✅ RAG completo (3 fontes) + ✅ UI testada + ✅ Documentação 3 níveis
+| **Status**: ✅ Fine-tuning concluído + ✅ RAG completo (3 fontes) + ✅ UI testada + ✅ Documentação 3 níveis
 >
-> **Última atualização**: 08/09/2026
+> **Última atualização**: 08/09/2026 (atualizado — patches Colab + setup_data_colab.py)
 >
 > **Autora**: Michelle Almeida Nogueira Rodrigues (Flamers Team, FIAP)
 > **Organização**: https://github.com/Flamers-Team/Techchalleng3
@@ -540,16 +540,19 @@ Techchalleng3/                          (GitHub: Flamers-Team/Techchalleng3)
 
 | # | Tarefa | Tempo Est. | Prioridade | Status |
 |---|---|---|---|---|
-| 1 | **Testar a UI Gradio** no Colab (compartilhar URL com equipe/professor) | 15 min | 🔴 Alta | Pendente |
+| 1 | **Testar a UI Gradio** no Colab (compartilhar URL com equipe/professor) | 15 min | 🔴 Alta | ✅ **FEITO** — URL gradio.live funciona |
 | 2 | **Gravar vídeo demo** (≤15min) mostrando: LLM respondendo + RAG funcionando + HITL | 1-2h | 🔴 Alta | Pendente |
-| 3 | **Atualizar DOCX final** com seção "O Que Falta" + cronograma | 30 min | 🟡 Média | Pendente |
-| 4 | **Testar pipeline completo** com pergunta real no Colab | 15 min | 🟡 Média | Pendente |
-| 5 | **Substituir mocks** em `src/llm/client.py` (`_mock_response` ainda existe) | 1h | 🟡 Média | Pendente |
+| 3 | **Atualizar DOCX final** com seção "O Que Falta" + cronograma | 30 min | 🟡 Média | ✅ **FEITO** — 5 DOCX atualizados |
+| 4 | **Testar pipeline completo** com pergunta real no Colab | 15 min | 🟡 Média | ✅ **FEITO** — RAG + LLM + UI funcionando |
+| 5 | **Substituir mocks** em `src/llm/client.py` (`_mock_response` ainda existe) | 1h | 🟡 Média | Pendente (fallback intencional, erros via RuntimeError) |
 | 6 | **Refatorar `docs/generator.py`** (CRM hardcoded "12345-DF") | 1-2h | 🟡 Média | Pendente |
 | 7 | **Testes integrados** end-to-end (UI + LLM + RAG + HITL + PDFs) | 1h | 🟡 Média | Pendente |
 | 8 | **Limpar cache HuggingFace** local (`walmeidadf___chat_bulario/`, `arrow` files) | 5 min | 🟢 Baixa | Pendente |
-| 9 | **README badges** (build status, license, etc) | 15 min | 🟢 Baixa | Pendente |
-| 10 | **HuggingFace Spaces Gradio** (deploy com UI rodando 24/7) | 30 min | 🟢 Baixa | Opcional (pago) |
+| 9 | **README badges** (build status, license, etc) | 15 min | 🟢 Baixa | ✅ **FEITO** — badges coloridos |
+| 10 | **HuggingFace Spaces Gradio** (deploy com UI rodando 24/7) | 30 min | 🟢 Baixa | ⚠️ Bloqueado (requer PRO pago) — Static Space grátis criado |
+| 11 | **Script setup_data_colab.py** (baixa datasets automaticamente) | - | 🟡 Média | ✅ **FEITO** — `scripts/setup_data_colab.py` |
+| 12 | **Patch gradio_client completo** (enum + const) | - | 🟡 Média | ✅ **FEITO** — patch em `rodarcolab.ipynb` |
+| 13 | **Notebook `rodarcolab.ipynb` corrigido** (caminhos + patches) | - | 🔴 Alta | ✅ **FEITO** — 31 células, todas funcionais |
 
 ---
 
@@ -693,8 +696,44 @@ api.upload_folder(
 )
 ```
 
+### 12.7. Setup Completo no Google Colab (⭐ RECOMENDADO)
+
+**Notebook**: `notebooks/rodarcolab.ipynb` (31 células, ~15 min de execução)
+
+**O que faz**:
+1. Monta Google Drive
+2. Instala dependências (numpy, pydantic, chromadb, gradio, unsloth)
+3. Clona repositório
+4. Copia modelo LoRA do Drive
+5. Aplica patch gradio_client (corrige `TypeError: bool is not iterable`)
+6. Cópia do modelo pro caminho que a UI espera
+7. Indexa ChatBulário (RAG)
+8. Patch chromadb (np.float_ → np.float64)
+9. Carrega RAG + LLM
+10. Sobe UI Gradio (gera URL pública tipo `https://xxxxx.gradio.live`)
+
+**Setup automático de dados** (alternativa):
+```bash
+# Baixa todos os datasets públicos automaticamente
+python scripts/setup_data_colab.py
+
+# Baixa: MedQuAD, ChatBulário, CID-10, Synthetic Notes
+# Tempo: ~10 min
+```
+
+**Patches aplicados no notebook**:
+- ✅ `gradio_client/utils.py` — `'if "enum" in schema:'` → `isinstance(schema, dict) and "enum" in schema:`
+- ✅ `chromadb/types.py` — `np.float_` → `np.float64`
+- ✅ `huggingface_hub` downgrade para 0.20.0 (HfFolder ainda existe)
+- ✅ `share=False` → `share=True` (gera URL pública)
+
+**Caminhos importantes**:
+- Modelo fine-tuned: `/content/drive/MyDrive/techchallenge_fase3/biomistral-medquad-lora/`
+- Modelo copiado: `/content/Techchalleng3/biomistral-medquad-lora/` (caminho que UI espera)
+- ChromaDB: `/content/Techchalleng3/data/processed/chroma_index/`
+
 ---
 
 **Relatório gerado em**: 08/09/2026
-**Versão do projeto**: 2.1 (RAG completo com 3 fontes + sem mocks)
+**Versão do projeto**: 2.2 (patches Colab aplicados + setup_data_colab.py)
 **Próxima atualização**: após testes finais + vídeo demo

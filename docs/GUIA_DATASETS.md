@@ -2,6 +2,23 @@
 
 > Lista completa de datasets públicos que você precisa baixar, com links diretos e instruções.
 
+## ⚡ Setup Automático (⭐ RECOMENDADO)
+
+```bash
+# Baixa automaticamente TODOS os datasets públicos
+python scripts/setup_data_colab.py
+```
+
+**O que baixa**:
+- ✅ **MedQuAD** (NIH público, ~17k pares Q&A médicos EN)
+- ✅ **ChatBulário** (HuggingFace, 68k pares Q&A bulas PT-BR)
+- ✅ **CID-10** (DATASUS público, fallback 100 doenças se URL falhar)
+- ✅ **Synthetic Clinical Notes** (HuggingFace, 3k notas)
+
+**Tempo**: ~10 min
+
+---
+
 ## 🎯 Status atual
 
 | # | Dataset | Status | Uso no projeto |
