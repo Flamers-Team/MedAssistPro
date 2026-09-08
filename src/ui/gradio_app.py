@@ -69,17 +69,18 @@ def processar_consulta(relato: str, nome_paciente: str, idade: str, sexo: str, p
     tri = triar(relato)
     log_event("triagem", agent="triagem", input_data=relato, output_data=tri)
 
-    progress(0.3, desc="📚 Etapa 2/5: Buscando literatura (PMC)...")
-    # RAG PMC (mock até indexar artigos reais)
-    rag_pmc = []
-    if _retriever:
-        rag_pmc = _retriever.retrieve_pmc(relato, k=4)
-
-    progress(0.5, desc="🏥 Etapa 3/5: Buscando base interna...")
-    # RAG interno (ANVISA + CID-10 + Synthetic)
+    progress(0.3, desc="📚 Etapa 2/5: Buscando bulas (RAG ChatBulário)...")
+    # RAG: usa apenas o ChatBulário (bulas PT-BR)
+    # PMC mock foi removido — usamos só bulas, que são suficientes pro Tech Challenge
+    rag_pmc = []  # Mantido por compatibilidade com UI
     rag_interno = []
     if _retriever:
-        rag_interno = _retriever.retrieve_interno(relato, k=4)
+        try:
+            rag_interno = _retriever.retrieve_interno(relato, k=5)
+        except RuntimeError as e:
+            print(f"⚠️  RAG falhou: {e}")
+            # Segue sem RAG — LLM pode responder com conhecimento próprio
+            rag_interno = []
 
     progress(0.7, desc="🧠 Etapa 4/5: Gerando síntese clínica...")
     # Agente 2: Síntese
@@ -87,7 +88,7 @@ def processar_consulta(relato: str, nome_paciente: str, idade: str, sexo: str, p
     sintese = sintetizar(relato, rag_pmc, rag_interno)
     log_event("sintese", agent="sintese", input_data=relato, output_data=sintese)
 
-    progress(0.9, desc="✅ Etapa 5/5: Validando e formatando...")
+    progress(0.9, desc="✅ Etapa 4/4: Validando e formatando...")
     # Adicionar disclaimer
     sintese["disclaimer"] = (
         "⚕️ ATENÇÃO: Esta resposta foi gerada por IA e constitui APENAS "
@@ -251,7 +252,7 @@ with gr.Blocks(
 
     **Sessão**: `{SESSION_ID}` | **Usuário**: `{USER_ID}` | **Status**: 🟢 Online
 
-    Pipeline: Relato → Triagem → RAG (PMC + Interno) → Síntese → HITL → PDFs
+    Pipeline: Relato → Triagem → RAG (ChatBulário) → Síntese → HITL → PDFs
     """)
 
     sintese_state = gr.State({})
@@ -290,7 +291,7 @@ with gr.Blocks(
 
             with gr.Row():
                 with gr.Column():
-                    rag_pmc_out = gr.JSON(label="📚 RAG Literatura (PMC)")
+                    rag_pmc_out = gr.JSON(label="📚 RAG Bulas (ChatBulário)")
                 with gr.Column():
                     rag_interno_out = gr.JSON(label="🏥 RAG Base Interna")
 
