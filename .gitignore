@@ -148,5 +148,20 @@ chroma_internal/
 *.chroma
 *.chroma.sqlite3
 
+# ============================================================
+# ARQUIVOS AUXILIARES (não fazem parte do projeto final)
+# ============================================================
+# Conversor MD → DOCX (script local, regenerável)
+docs/md_to_docx.py
+
+# Script antigo de geração de relatório (substituído por md_to_docx.py)
+docs/build_relatorio_docx.py
+
+# Model Card do HuggingFace (vai pro repo separado do modelo)
+docs/MODEL_CARD_HUGGINGFACE.md
+
+# HTML do Space HF (deploy é separado do repo principal)
+docs/index.html
+
 # Embeddings em cache (~250MB, regeneráveis)
 .cache/
