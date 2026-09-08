@@ -1,0 +1,28 @@
+# requirements-colab.txt
+# Runtime da DEMO (notebooks/rodarcolab.ipynb) no Google Colab.
+# Compatível com Python 3.13 + numpy 2.x NATIVOS do Colab.
+# NÃO faz downgrade de numpy/torch. Inferência com transformers + peft (sem unsloth).
+
+# --- LLM (inferência) ---
+transformers>=4.45
+peft>=0.13
+accelerate>=0.34
+bitsandbytes>=0.44
+sentencepiece
+safetensors
+
+# --- RAG ---
+chromadb==0.5.23
+sentence-transformers>=3.0
+
+# --- Tradução PT-BR <-> EN (MarianMT na UI) ---
+sacremoses
+
+# --- App / UI / Docs / Logs ---
+gradio==4.44.1
+reportlab>=4.2
+loguru>=0.7
+
+# --- Grafo (LangGraph) ---
+langgraph>=0.2
+langchain-core>=0.3

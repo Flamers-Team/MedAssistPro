@@ -41,9 +41,12 @@ USER_ID = "dr.demonstracao"
 # ============================================================
 # PIPELINE COMPLETO (integra tudo)
 # ============================================================
+_tradutor = None  # tradutor PT-BR <-> EN (carregado sob demanda)
+
+
 def inicializar_componentes():
-    """Inicializa LLM + Retriever + DocGenerator (lazy loading)."""
-    global _llm, _retriever, _doc_gen
+    """Inicializa LLM + Retriever + DocGenerator + Tradutor (lazy loading)."""
+    global _llm, _retriever, _doc_gen, _tradutor
     if "_llm" not in globals():
         from src.llm.client import get_llm
         from src.rag.retriever import Retriever
@@ -57,21 +60,77 @@ def inicializar_componentes():
             _retriever = None
         _doc_gen = DocumentGenerator(output_dir=str(DOCS_DIR))
 
+        # Tradução PT-BR <-> EN (a LLM foi treinada em inglês).
+        # Desliga com UI_TRANSLATE=0 ou em modo mock.
+        _tradutor = None
+        if (
+            os.getenv("UI_TRANSLATE", "1").lower() in ("1", "true", "yes")
+            and os.getenv("LLM_MOCK", "0").lower() not in ("1", "true", "yes")
+        ):
+            try:
+                from src.llm.tradutor import get_tradutor
 
-def processar_consulta(relato: str, nome_paciente: str, idade: str, sexo: str, progress=gr.Progress()):
-    """Pipeline completo: LLM + RAG → síntese → validação."""
+                _tradutor = get_tradutor()
+            except Exception as e:  # noqa: BLE001
+                print(f"⚠️  Tradutor não carregado: {e}")
+                _tradutor = None
+
+
+def _traduzir_triagem(tri: dict, tr) -> dict:
+    """Traduz EN->PT os campos de texto livre da triagem."""
+    if not isinstance(tri, dict) or tr is None or not getattr(tr, "ok", False):
+        return tri
+    out = dict(tri)
+    if out.get("justificativa"):
+        out["justificativa"] = tr.en_para_pt(out["justificativa"])
+    return out
+
+
+def _traduzir_sintese(s: dict, tr) -> dict:
+    """Traduz EN->PT os campos de texto livre da síntese (mantém CID, doses, nomes)."""
+    if not isinstance(s, dict) or tr is None or not getattr(tr, "ok", False):
+        return s
+    out = dict(s)
+    if out.get("observacoes"):
+        out["observacoes"] = tr.en_para_pt(out["observacoes"])
+    out["hipoteses"] = [
+        {**h, "justificativa": tr.en_para_pt(h["justificativa"])}
+        if isinstance(h, dict) and h.get("justificativa")
+        else h
+        for h in out.get("hipoteses", [])
+    ]
+    out["exames_sugeridos"] = [
+        {**e, "justificativa": tr.en_para_pt(e["justificativa"])}
+        if isinstance(e, dict) and e.get("justificativa")
+        else e
+        for e in out.get("exames_sugeridos", [])
+    ]
+    return out
+
+
+def processar_consulta(relato: str, nome_paciente: str, idade: str, sexo: str,
+                       traduzir: bool = True, progress=gr.Progress()):
+    """Pipeline completo: (tradução PT→EN) → LLM + RAG → síntese → validação → (tradução EN→PT)."""
     inicializar_componentes()
+
+    usar_traducao = bool(traduzir) and _tradutor is not None and getattr(_tradutor, "ok", False)
+
+    # A LLM foi treinada em inglês: traduz o relato PT→EN para os agentes.
+    # O RAG continua usando o relato ORIGINAL (ChatBulário é PT-BR).
+    relato_en = relato
+    if usar_traducao:
+        progress(0.05, desc="🌐 Traduzindo relato PT→EN...")
+        relato_en = _tradutor.pt_para_en(relato)
 
     progress(0.1, desc="🔍 Etapa 1/5: Triagem clínica...")
 
     # Agente 1: Triagem (via src/agents/triagem.py)
     from src.agents.triagem import triar
-    tri = triar(relato)
-    log_event("triagem", agent="triagem", input_data=relato, output_data=tri)
+    tri = triar(relato_en)
+    log_event("triagem", agent="triagem", input_data=relato_en, output_data=tri)
 
     progress(0.3, desc="📚 Etapa 2/5: Buscando bulas (RAG ChatBulário)...")
-    # RAG: usa apenas o ChatBulário (bulas PT-BR)
-    # PMC mock foi removido — usamos só bulas, que são suficientes pro Tech Challenge
+    # RAG: usa apenas o ChatBulário (bulas PT-BR) — com o relato original em PT
     rag_pmc = []  # Mantido por compatibilidade com UI
     rag_interno = []
     if _retriever:
@@ -85,8 +144,8 @@ def processar_consulta(relato: str, nome_paciente: str, idade: str, sexo: str, p
     progress(0.7, desc="🧠 Etapa 4/5: Gerando síntese clínica...")
     # Agente 2: Síntese
     from src.agents.sintese import sintetizar
-    sintese = sintetizar(relato, rag_pmc, rag_interno)
-    log_event("sintese", agent="sintese", input_data=relato, output_data=sintese)
+    sintese = sintetizar(relato_en, rag_pmc, rag_interno)
+    log_event("sintese", agent="sintese", input_data=relato_en, output_data=sintese)
 
     progress(0.9, desc="✅ Etapa 4/4: Validando e formatando...")
     # Adicionar disclaimer
@@ -102,6 +161,13 @@ def processar_consulta(relato: str, nome_paciente: str, idade: str, sexo: str, p
     from src.agents.validacao import validar
     validated = validar(sintese, tri, _llm)
     log_event("validacao", agent="validacao", input_data=sintese, output_data=validated)
+
+    # Traduz de volta EN→PT os textos livres para exibição
+    if usar_traducao:
+        progress(0.95, desc="🌐 Traduzindo resposta EN→PT...")
+        tri = _traduzir_triagem(tri, _tradutor)
+        validated = _traduzir_sintese(validated, _tradutor)
+        validated["triagem"] = tri
 
     progress(1.0, desc="✅ Concluído!")
 
@@ -279,6 +345,11 @@ with gr.Blocks(
                 lines=5,
             )
 
+            traduzir_chk = gr.Checkbox(
+                label="🌐 Traduzir PT-BR ⇄ EN (recomendado — a LLM foi treinada em inglês)",
+                value=True,
+            )
+
             iniciar_btn = gr.Button("🚀 Iniciar Consulta", variant="primary", size="lg")
             gr.Markdown("---")
 
@@ -315,12 +386,12 @@ with gr.Blocks(
                 receita_file = gr.File(label="📄 Receita", visible=False)
 
             # Eventos
-            def iniciar(rel, n, i, s):
-                tri, rpmc, rint, sint = processar_consulta(rel, n, i, s)
+            def iniciar(rel, n, i, s, trad):
+                tri, rpmc, rint, sint = processar_consulta(rel, n, i, s, traduzir=trad)
                 return tri, rpmc, rint, sint, sint
 
             iniciar_btn.click(
-                iniciar, inputs=[relato, nome, idade, sexo],
+                iniciar, inputs=[relato, nome, idade, sexo, traduzir_chk],
                 outputs=[triagem_out, rag_pmc_out, rag_interno_out, sintese_out, sintese_state],
             )
 
@@ -420,9 +491,9 @@ if __name__ == "__main__":
         print("   Continuando com fallbacks (modo demo)...")
 
     demo.launch(
-        share=False,
+        share=os.getenv("GRADIO_SHARE", "0").lower() in ("1", "true", "yes"),
         server_name="0.0.0.0",
-        server_port=7860,
+        server_port=int(os.getenv("GRADIO_SERVER_PORT", "7860")),
         auth=("medico", "demo123"),
         show_error=True,
     )

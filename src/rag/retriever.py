@@ -30,6 +30,16 @@ import os
 os.environ["ANONYMIZED_TELEMETRY"] = "False"
 
 
+def _embedding_device() -> str:
+    """Usa GPU para os embeddings quando disponível (muito mais rápido)."""
+    try:
+        import torch
+
+        return "cuda" if torch.cuda.is_available() else "cpu"
+    except Exception:
+        return "cpu"
+
+
 # Caminho padrão do ChromaDB (gerado por build_index_chatbulario.py)
 DEFAULT_CHROMA_DIR = Path(__file__).resolve().parents[2] / "data" / "processed" / "chroma_index"
 
@@ -63,7 +73,7 @@ class Retriever:
         try:
             self.embedding_fn = embedding_functions.SentenceTransformerEmbeddingFunction(
                 model_name="sentence-transformers/all-MiniLM-L6-v2",
-                device="cpu",  # ou "cuda" se tiver GPU
+                device=_embedding_device(),
             )
         except Exception as e:
             raise RuntimeError(

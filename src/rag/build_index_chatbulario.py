@@ -121,10 +121,17 @@ def indexar_chatbulario(limite: int = None):
         settings=Settings(anonymized_telemetry=False),
     )
 
-    # Embedding function (mesma do projeto)
+    # Embedding function (mesma do projeto) — usa GPU quando disponível
+    try:
+        import torch
+
+        _emb_device = "cuda" if torch.cuda.is_available() else "cpu"
+    except Exception:
+        _emb_device = "cpu"
+    print(f"   Embeddings em: {_emb_device}")
     embedding_fn = embedding_functions.SentenceTransformerEmbeddingFunction(
         model_name="sentence-transformers/all-MiniLM-L6-v2",
-        device="cpu",
+        device=_emb_device,
     )
 
     # DELETA collection antiga `anvisa` se existir
