@@ -35,7 +35,7 @@ pipeline_tag: text-generation
 >
 > **Última atualização**: 08/09/2026 (atualizado — patches Colab + setup_data_colab.py)
 >
-> **Autora**: Michelle Almeida Nogueira Rodrigues (Flamers Team, FIAP)
+> **Equipe**: Flamers Team (FIAP)
 > **Organização**: https://github.com/Flamers-Team/Techchalleng3
 > **Modelo publicado**: https://huggingface.co/michelleAnogueira/biomistral-medquad-lora
 
