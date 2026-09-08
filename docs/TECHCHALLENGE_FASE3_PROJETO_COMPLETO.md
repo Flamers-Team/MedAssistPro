@@ -561,11 +561,11 @@ Techchalleng3/                          (GitHub: Flamers-Team/Techchalleng3)
 
 | Hora | Atividade | Quem |
 |---|---|---|
-| **+0h** | Testar UI no Colab (carrega LLM + RAG, gera URL pública) | Michelle |
-| **+0:30h** | Gravar tela mostrando: pergunta PT → resposta PT (5 min de vídeo) | Michelle |
-| **+1h** | Gravar demo completo do projeto (15 min) | Michelle |
-| **+3h** | Gerar DOCX final consolidado | Michelle |
-| **+4h** | Submeter no portal FIAP | Michelle |
+| **+0h** | Testar UI no Colab (carrega LLM + RAG, gera URL pública) | — |
+| **+0:30h** | Gravar tela mostrando: pergunta PT → resposta PT (5 min de vídeo) | — |
+| **+1h** | Gravar demo completo do projeto (15 min) | — |
+| **+3h** | Gerar DOCX final consolidado | — |
+| **+4h** | Submeter no portal FIAP | — |
 
 ### 9.2. Para Entrega Completa (1 semana)
 

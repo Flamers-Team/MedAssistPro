@@ -710,11 +710,11 @@ Techchalleng3/                          (GitHub: Flamers-Team/Techchalleng3)
 
 | Hora | Atividade | Quem |
 |---|---|---|
-| **+0h** | Testar tradutor no Colab (10 min de execução) | Michelle |
-| **+0:30h** | Gravar tela mostrando: pergunta PT → resposta PT (5 min de vídeo) | Michelle |
-| **+1h** | Gravar demo completo do projeto (15 min) | Michelle |
-| **+3h** | Editar + gerar DOCX final atualizado | Michelle |
-| **+4h** | Submeter no portal FIAP | Michelle |
+| **+0h** | Testar tradutor no Colab (10 min de execução) | — |
+| **+0:30h** | Gravar tela mostrando: pergunta PT → resposta PT (5 min de vídeo) | — |
+| **+1h** | Gravar demo completo do projeto (15 min) | — |
+| **+3h** | Editar + gerar DOCX final atualizado | — |
+| **+4h** | Submeter no portal FIAP | — |
 
 ### 9.2. Para Entrega Completa (1 semana)
 
