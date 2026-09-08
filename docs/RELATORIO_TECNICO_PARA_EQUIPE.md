@@ -109,7 +109,7 @@ O Tech Challenge Fase 3 exige a construção de um **assistente médico intelige
 |---|---------|-------|-------|----------|----------------|
 | 1 | **MedQuAD** | NIH (aberto) | 🇺🇸 EN | 16.407 → 16.325 (anonimizado) | Fine-tuning principal |
 | 2 | **PubMedQA** | NIH/HuggingFace | 🇺🇸 EN | 211.269 | Fine-tuning adicional (avaliação) |
-| 3 | **ANVISA Medicamentos** | dados.anvisa.gov.br | 🇧🇷 PT | 43.445 | RAG #2 (bulas PT-BR) |
+| 3 | **ChatBulário** | HuggingFace | 🇧🇷 PT | 68.938 → 10.000 indexados | RAG #2 (bulas PT-BR) |
 | 4 | **Synthetic Clinical Notes** | TonicAI/HuggingFace | 🇺🇸 EN | 3.381 (anonimizado) | RAG #2 (notas SOAP) |
 | 5 | **CID-10** | DATASUS | 🇧🇷 PT | 12.451 códigos | Mapeamento de doenças PT-BR |
 
@@ -117,7 +117,7 @@ O Tech Challenge Fase 3 exige a construção de um **assistente médico intelige
 
 - **MedQuAD**: sugerido explicitamente no PDF do Tech Challenge. Cobre perguntas clínicas gerais com respostas fundamentadas.
 - **PubMedQA**: perguntas biomédicas baseadas em artigos PubMed. Excelente para avaliar RAG depois (formato yes/no/maybe).
-- **ANVISA**: único dataset público brasileiro de bulas. Necessário para PT-BR.
+- **ChatBulário** (substituiu `anvisa_medicamentos.csv`): único dataset público brasileiro de **bulas estruturadas** em formato Q&A. Necessário para PT-BR.
 - **Synthetic Clinical Notes**: notas clínicas sintéticas formato SOAP. Ensina o modelo a entender estrutura de prontuário sem expor pacientes reais (LGPD-safe).
 - **CID-10**: mapeamento essencial para o assistente sugerir diagnósticos com códigos padrão brasileiros.
 
@@ -666,7 +666,7 @@ Techchalleng3/                          (GitHub: Flamers-Team/Techchalleng3)
 | 4 | Validação qualitativa (93.5/100) | ✅ | `src/data/03_validar_qualidade.py` |
 | 5 | Anonimização Synthetic Notes | ✅ | `src/data/04_anonimizar_synthetic.py` |
 | 6 | Download ANVISA + CID-10 + PubMedQA | ✅ | `data/raw/` |
-| 7 | Indexação ChromaDB (3 vector stores) | ✅ | `data/processed/chroma_index/` |
+| 7 | Indexação ChromaDB (3 vector stores: ChatBulário + CID-10 + Synthetic) | ✅ | `data/processed/chroma_index/` |
 | 8 | Notebook de fine-tuning (814 linhas) | ✅ | `notebooks/02_finetuning.ipynb` |
 | 9 | Fine-tuning executado no Colab Pro | ✅ | Drive: `biomistral-medquad-lora/` |
 | 10 | Avaliação perplexity (1.80) | ✅ | `eval_results_qualitativo.json` |
