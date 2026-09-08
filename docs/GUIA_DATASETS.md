@@ -19,65 +19,27 @@ python scripts/setup_data_colab.py
 
 ---
 
-## 🎯 Status atual
+## 🎯 Status atual (set/2026)
 
-| # | Dataset | Status | Uso no projeto |
-|---|---------|--------|----------------|
-| ✅ | **MedQuAD** | JÁ TEM em `Downloads/dataset/medquad_finetuning.jsonl` | Fine-tuning |
-| ✅ | **LiveQA-Med** | JÁ TEM em `QA-TestSet-LiveQA-Med-Qrels-2479-Answers/` | Avaliar RAG |
-| ✅ | **PubMedQA** | JÁ BAIXADO (HuggingFace) | Complementar fine-tuning |
-| 🔲 | **PMC Open Access Subset** | OPCIONAL (subset) | RAG #1 literatura |
-| ✅ | **ChatBulário** ⭐ | **JÁ BAIXADO** em `data/raw/chatbulario_*.jsonl` | **RAG #2 interno (medicamentos)** |
-| ✅ | **Synthetic Clinical Notes** | JÁ BAIXADO | RAG #2 interno / fine-tuning |
-| ✅ | **CID-10 DATASUS** | JÁ BAIXADO | Mapeamento de doenças (PT-BR) |
-| ⚠️ | **MIMIC-III** | REJEITADO (requer aprovação + DUA) | Fine-tuning (burocracia) |
-| 🗑️ | ~~ANVISA Medicamentos (CSV)~~ | **SUBSTITUÍDO por ChatBulário** | ~~RAG #2 metadados~~ |
+| # | Dataset | Status | Onde baixar | Uso |
+|---|---------|--------|-------------|-----|
+| ✅ | **MedQuAD** | Baixar via `scripts/setup_data_colab.py` ou `git clone https://github.com/abachaa/MedQuAD` | NIH (público) | Fine-tuning |
+| ✅ | **ChatBulário** ⭐ | Baixar via `scripts/setup_data_colab.py` ou `load_dataset("walmeidadf/ChatBulario")` | HuggingFace | **RAG #1 (bulas PT-BR)** |
+| ✅ | **Synthetic Clinical Notes** | Baixar via `scripts/setup_data_colab.py` | TonicAI/HuggingFace | RAG #3 (notas SOAP) |
+| ✅ | **CID-10 DATASUS** | Baixar via `scripts/setup_data_colab.py` (fallback: 100 doenças comuns) | DATASUS (público) | RAG #2 (mapeamento doenças) |
+| 🗑️ | ~~ANVISA Medicamentos (CSV)~~ | ~~REMOVIDO ago/2026 — substituído por ChatBulário~~ | — | ~~RAG metadados~~ |
+| 🗑️ | ~~LiveQA-Med~~ | ~~REMOVIDO set/2026 — substituído pelos 15 testes do notebook~~ | — | ~~Avaliar RAG~~ |
+| 🗑️ | ~~PubMedQA~~ | ~~REMOVIDO set/2026 — não usado no pipeline final~~ | — | ~~Complementar fine-tuning~~ |
+| 🗑️ | ~~PMC Open Access~~ | ~~REMOVIDO — URL quebrada (mudou em abril/2026)~~ | — | ~~RAG #1 literatura~~ |
+| ⚠️ | **MIMIC-III** | REJEITADO (requer aprovação + DUA) | — | Fine-tuning (burocracia) |
 
-**⭐ ATUALIZAÇÃO AGO/2026**: O dataset `anvisa_medicamentos.csv` (que só tinha metadados: nome do remédio, classe terapêutica, registro) foi **substituído pelo ChatBulário** (pares pergunta-resposta com texto completo das bulas em PT-BR, 9 seções da RDC 47/2009). Detalhes na seção "ChatBulário" abaixo.
+**⭐ ATUALIZAÇÃO SET/2026**: Limpeza completa do repositório. Agora só temos 4 datasets ativos. Os demais foram removidos do `data/raw/` (liberou ~500 MB). Use o script automático `scripts/setup_data_colab.py` para baixar tudo.
 
 ---
 
 ## 📥 Downloads prioritários
 
-### 1. **PubMedQA** (biomedical yes/no/maybe QA)
-- **Por que**: complementar MedQuAD no fine-tuning, formato pergunta→resposta curta
-- **Link**: https://huggingface.co/datasets/qiaojin/PubMedQA
-- **Tamanho**: ~300 MB (273k amostras)
-- **Formato**: HuggingFace dataset (carrega com `datasets.load_dataset()`)
-- **Download direto via Python**:
-```python
-from datasets import load_dataset
-ds = load_dataset("qiaojin/PubMedQA", "pqa_labeled")
-# ou
-ds = load_dataset("qiaojin/PubMedQA", "pqa_artificial")  # 211k geradas
-```
-
-### 2. **PubMed Central (PMC) Open Access Subset**
-- **Por que**: base de literatura científica pro RAG #1
-- **Link FTP**: https://ftp.ncbi.nlm.nih.gov/pub/pmc/oa_bulk/
-- **Tamanho**: ~3.5 milhões de artigos (vários GBs!) — pegar só subset
-- **Como pegar subset pequeno**:
-```bash
-# ~50k artigos (vai ser suficiente pra Tech Challenge)
-curl -O https://ftp.ncbi.nlm.nih.gov/pub/pmc/oa_bulk/oa_comm/xml/oa_comm_xml.PMC001xxxxxx.baseline.2024-12-18.tar.gz
-# Repetir para outros arquivos .baseline.tar.gz
-```
-- **Alternativa menor (recomendada)**: usar a API BioC em vez de FTP
-```python
-# Exemplo: pegar 1000 artigos sobre "diabetes"
-import requests
-# https://www.ncbi.nlm.nih.gov/research/bionlp/RESTful/pmcoa.cgi/BioC_json/PMC1234567/unicode
-```
-
-### 3. **ANVISA — Medicamentos Registrados**
-- **Por que**: bulas de medicamentos brasileiros pro RAG #2
-- **Link**: https://dados.anvisa.gov.br/dados/
-- **Arquivo específico**: `DADOS_ABERTOS_MEDICAMENTOS.csv` (~8 MB)
-- **Download direto**:
-```bash
-curl -O https://dados.anvisa.gov.br/dados/DADOS_ABERTOS_MEDICAMENTOS.csv
-```
-- **Colunas principais**: NOME_PRODUTO, PRINCIPIO_ATIVO, CLASSE_TERAPEUTICA, etc.
+> ⚠️ **SET/2026**: Seções 1 (PubMedQA), 2 (PMC) e 3 (ANVISA) foram removidas — esses datasets não fazem mais parte do pipeline. Use o **Setup Automático** no topo (`scripts/setup_data_colab.py`) ou siga as instruções das seções 4-6 abaixo para cada dataset ativo.
 
 ### 4. **Synthetic Clinical Notes** (HuggingFace)
 - **Por que**: anotações clínicas sintéticas pra RAG e fine-tuning
@@ -156,85 +118,83 @@ python src/rag/build_index_chatbulario.py 10000
 
 ## 📦 Datasets opcionais (tempo permitir)
 
-### 6. **RxNorm** (medicamentos EUA — complementar ANVISA)
-- **Por que**: nomes genéricos, doses, interações em inglês
-- **Link**: https://www.nlm.nih.gov/research/umls/rxnorm/docs/rxnormfiles.html
-- **Download**: requer cadastro UMLS gratuito (UMLS Terminology Services)
-- **Tamanho**: ~2 GB
-
-### 7. **DrugBank Open Data**
-- **Por que**: dataset aberto de medicamentos sob CC0
-- **Link**: https://go.drugbank.com/releases/latest
-- **Tamanho**: 204 MB (versão completa) ou 1 MB (vocabulário)
-
-### 8. **MIMIC-III** (somente se quiser realismo máximo)
+### 6. **MIMIC-III** (REJEITADO — burocrático)
 - **Por que**: prontuários reais anonimizados (UTI Beth Israel)
 - **Link**: https://mimic.mit.edu/docs/faq/how-to-get-access.html
-- **⚠️ Requer**:
-  1. Curso CITI "Data or Specimens Only Research" (gratuito, ~2h)
-  2. Conta no PhysioNet
-  3. Aprovação da aplicação (1-2 semanas)
+- **⚠️ Rejeitado**: requer curso CITI + aprovação PhysioNet (1-2 semanas). Não compensa pro Tech Challenge.
 - **Tamanho**: ~6 GB compactado
 
+> ⚠️ **SET/2026**: Seções 6 (RxNorm), 7 (DrugBank) foram removidas — não usadas no pipeline. Apenas MIMIC-III é mencionado como rejeitado por questões burocráticas.
+
 ---
 
-## 🎯 Plano de ação sugerido
+## 🎯 Plano de ação sugerido (set/2026)
 
-### Rodada 1 — Essenciais (1-2h de downloads)
+**Recomendação**: use o script automático — faz tudo em 10 min sem erro:
+
 ```bash
-# 1. PubMedQA (~300MB)
-python -c "from datasets import load_dataset; load_dataset('qiaojin/PubMedQA', 'pqa_labeled')"
-
-# 2. ANVISA Medicamentos (~8MB)
-curl -O https://dados.anvisa.gov.br/dados/DADOS_ABERTOS_MEDICAMENTOS.csv
-
-# 3. Synthetic Clinical Notes (~50MB)
-python -c "from datasets import load_dataset; load_dataset('TonicAI/synthetic_clinical_notes')"
-
-# 4. CID-10 (~5MB)
-curl -L -o cid10.csv https://raw.githubusercontent.com/cleytonferrari/CidDataSus/master/CIDImport/Repositorio/Resources/CID-10-CAPITULOS.CSV
+python scripts/setup_data_colab.py
 ```
 
-### Rodada 2 — PMC (1-2 dias pra processar)
-- Pegar 1 arquivo `.tar.gz` do PMC OA (~5-10 GB)
-- Indexar com script que vou criar (`src/rag/build_index_pmc.py`)
-- Salvar em ChromaDB (chunking + embeddings)
+### Manual (se preferir controle individual)
 
-### Rodada 3 — OPCIONAL (MIMIC, se aprovado)
-- Aguardar aprovação PhysioNet
-- Baixar MIMIC-III/IV (~6 GB)
-- Refinar modelo com dados reais
+```bash
+# 1. MedQuAD (~23MB processado)
+git clone https://github.com/abachaa/MedQuAD.git
+python src/data/01_anonimizar.py  # converte para medquad_finetuning.jsonl
+
+# 2. ChatBulário (~200MB, 68k pares Q&A)
+python -c "from datasets import load_dataset; ds = load_dataset('walmeidadf/ChatBulario', cache_dir='data/raw')"
+
+# 3. Synthetic Clinical Notes (~11MB, 3k notas)
+python -c "from datasets import load_dataset; load_dataset('TonicAI/synthetic_clinical_notes')"
+
+# 4. CID-10 (~1.3MB ou fallback 100 doenças)
+curl -L -o data/raw/cid10_subcategorias.csv \
+  https://raw.githubusercontent.com/cleytonferrari/CidDataSus/master/CIDImport/Repositorio/Resources/CID-10-CAPITULOS.CSV
+```
+
+### Tempo total
+
+| Etapa | Tempo |
+|---|---|
+| Setup automático (1 comando) | ~10 min |
+| Manual (4 comandos separados) | ~15 min |
 
 ---
 
-## 📁 Onde salvar no projeto
+## 📁 Onde salvar no projeto (estrutura atual set/2026)
 
 Todos os datasets ficam em `data/raw/` (protegido pelo `.gitignore`):
 
 ```
 data/
 ├── raw/
-│   ├── medquad_finetuning.jsonl        ✅ já tem
-│   ├── pubmedqa/                       🔲 criar
-│   │   └── pubmedqa_labeled.json
-│   ├── pmc_subset/                     🔲 criar (artigos extraídos)
-│   ├── anvisa_medicamentos.csv         🔲 baixar
-│   ├── synthetic_clinical_notes/       🔲 criar
-│   └── cid10.csv                       🔲 baixar
+│   ├── medquad_finetuning.jsonl           ✅ ativo (fine-tuning)
+│   ├── chatbulario_train.jsonl            ✅ ativo (RAG #1, 10k indexadas)
+│   ├── chatbulario_validation.jsonl       ✅ ativo (avaliação)
+│   ├── chatbulario_test.jsonl             ✅ ativo (avaliação)
+│   ├── synthetic_clinical_notes/          ✅ ativo (RAG #3, 1k notas)
+│   └── cid10_subcategorias.csv            ✅ ativo (RAG #2)
 └── processed/
-    ├── medquad_anonimizado.jsonl       ✅ já tem
-    ├── train.jsonl                     ✅ já tem
-    ├── val.jsonl                       ✅ já tem
-    └── test.jsonl                      ✅ já tem
+    ├── train.jsonl                        ✅ (fine-tuning splits)
+    ├── val.jsonl                          ✅
+    ├── test.jsonl                         ✅
+    ├── synthetic_clinical_notes_anonimizado.jsonl  ✅
+    └── chroma_index/                      ✅ (ChromaDB indexado)
+        ├── chatbulario/    (10k docs)
+        ├── cid10/          (22 códigos)
+        └── synthetic/      (1k notas)
 ```
 
 ---
 
-## ✅ Checklist de downloads
+## ✅ Checklist de downloads (set/2026)
 
-- [ ] PubMedQA (rodar `load_dataset` no Colab ou local)
-- [ ] ANVISA Medicamentos CSV
-- [ ] Synthetic Clinical Notes (HuggingFace)
-- [ ] CID-10 CSV
-- [ ] PMC subset (opcional, pesado)
-- [ ] MIMIC-III (opcional, burocrático)
+- [x] **MedQuAD** (via `scripts/setup_data_colab.py`)
+- [x] **ChatBulário** (via `scripts/setup_data_colab.py`)
+- [x] **Synthetic Clinical Notes** (via `scripts/setup_data_colab.py`)
+- [x] **CID-10** (via `scripts/setup_data_colab.py` com fallback)
+- [x] **ChromaDB indexado** (via `python src/rag/build_index_chatbulario.py 10000`)
+
+**Tudo automatizado** — basta rodar `scripts/setup_data_colab.py` no Colab.

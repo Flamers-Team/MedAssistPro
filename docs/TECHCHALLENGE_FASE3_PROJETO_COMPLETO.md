@@ -124,8 +124,7 @@ O Tech Challenge Fase 3 exige a construção de um **assistente médico intelige
 | # | Dataset | Fonte | Idioma | Amostras | Uso |
 |---|---------|-------|-------|----------|-----|
 | 1 | **MedQuAD** | NIH (público) | 🇺🇸 EN | 16.407 → 16.325 (anonimizado) | Fine-tuning principal |
-| 2 | **PubMedQA** | NIH/HuggingFace | 🇺🇸 EN | 211.269 | Avaliação (não usado no treino final) |
-| 3 | **ChatBulário** ⭐ | HuggingFace | 🇧🇷 PT | 68.938 → 10.000 indexados | RAG #2 (bulas PT-BR) |
+| 2 | **ChatBulário** ⭐ | HuggingFace | 🇧🇷 PT | 68.938 → 10.000 indexados | RAG #1 (bulas PT-BR) |
 | 4 | **Synthetic Clinical Notes** | TonicAI/HuggingFace | 🇺🇸 EN | 3.381 (anonimizado) → **indexado** | RAG #2 (notas SOAP) |
 | 5 | **CID-10** | DATASUS | 🇧🇷 PT | 12.451 → **12.451 indexados** | Mapeamento de doenças PT-BR |
 
@@ -516,7 +515,7 @@ Techchalleng3/                          (GitHub: Flamers-Team/Techchalleng3)
 | 3 | Normalização + split 90/5/5 | ✅ | `src/data/02_normalizar_e_split.py` |
 | 4 | Validação qualitativa (93.5/100) | ✅ | `src/data/03_validar_qualidade.py` |
 | 5 | Anonimização Synthetic Notes | ✅ | `src/data/04_anonimizar_synthetic.py` |
-| 6 | Download datasets (MedQuAD, ChatBulário, CID-10, Synthetic, PubMedQA) | ✅ | `data/raw/` |
+| 6 | Download datasets (MedQuAD, ChatBulário, CID-10, Synthetic) | ✅ | `data/raw/` |
 | 7 | Indexação ChromaDB (ChatBulário 10k + CID-10 12k + Synthetic 3k) | ✅ | `data/processed/chroma_index/` |
 | 8 | Notebook de fine-tuning (814 linhas) | ✅ | `notebooks/02_finetuning.ipynb` |
 | 9 | Fine-tuning executado no Colab Pro (3h30min) | ✅ | Drive: `biomistral-medquad-lora/` |

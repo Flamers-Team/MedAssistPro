@@ -10,8 +10,8 @@ Pipeline completo: **Fine-tuning de BioMistral-7B** + **RAG (PMC + Base Interna)
 
 Assistente médico que combina:
 - 🧠 LLM fine-tunado em dados médicos (BioMistral-7B + QLoRA + Unsloth)
-- 📚 RAG sobre PubMed Central (literatura científica)
-- 🏥 RAG sobre base interna do hospital (protocolos + bulas)
+- 📚 RAG sobre bulas ANVISA (ChatBulário, 10k indexadas em PT-BR)
+- 🏥 RAG sobre códigos CID-10 + notas clínicas sintéticas
 - 🤖 3 agentes LangGraph (Triagem, Síntese, Validação)
 - ✅ HITL obrigatório (médico sempre ratifica)
 - 📄 Geração de documentos assináveis (prontuário, atestado, receita)
@@ -69,26 +69,44 @@ A branch `main` é a única branch ativa. Todo o código completo está nela.
 - [x] HITL obrigatório (validação humana)
 - [x] Logging detalhado + auditoria
 - [x] Explainability (citações de fonte)
-- [x] RAG (PubMed Central + Base Interna)
+- [x] RAG (ChatBulário + CID-10 + Synthetic Notes)
 - [x] Projeto modularizado em Python
 - [x] README completo
 
 ## 📚 Datasets utilizados
 
-| # | Dataset | Fonte | Uso | Amostras |
-|---|---------|-------|-----|----------|
-| 1 | **MedQuAD** | NIH (público) | Fine-tuning | 16.407 → 16.325 (anonimizado) |
-| 2 | ⭐ **ChatBulário** | HuggingFace | **RAG #2 (bulas completas PT-BR)** | **68.938** pares Q&A |
-| 3 | **Synthetic Clinical Notes** | TonicAI/HuggingFace | RAG #2 (notas SOAP) | 3.381 (anonimizado) |
-| 4 | **CID-10 DATASUS** | DATASUS (público) | Mapeamento doenças PT-BR | 12.451 códigos |
-| 5 | **PubMedQA** | NIH/HuggingFace | Avaliação RAG | 211.269 |
+| # | Dataset | Fonte | Como baixar | Uso | Amostras |
+|---|---------|-------|-------------|-----|----------|
+| 1 | **MedQuAD** | NIH (público) | https://github.com/abachaa/MedQuAD → `medquad.csv` | Fine-tuning | 16.407 → 16.325 (anonimizado) |
+| 2 | ⭐ **ChatBulário** | HuggingFace | https://huggingface.co/datasets/walmeidadf/ChatBulario | **RAG #1 (bulas completas PT-BR)** | **68.938** pares Q&A |
+| 3 | **Synthetic Clinical Notes** | TonicAI/HuggingFace | https://huggingface.co/datasets/TonicAI/synthetic_clinical_notes | RAG #2 (notas SOAP) | 3.381 (anonimizado) |
+| 4 | **CID-10 DATASUS** | DATASUS (público) | https://github.com/cleytonferrari/CidDataSus (fallback: 100 doenças comuns em `scripts/setup_data_colab.py`) | Mapeamento doenças PT-BR | 12.451 códigos (ou 22 capítulos) |
 
 **⭐ ATUALIZAÇÃO ago/2026**: O dataset `anvisa_medicamentos.csv` (que só tinha metadados) foi substituído pelo **ChatBulário** — pares pergunta-resposta com texto completo das bulas em PT-BR, 9 seções padronizadas (RDC 47/2009). Resolveu o problema do RAG multilíngue. Detalhes em [`docs/GUIA_DATASETS.md`](docs/GUIA_DATASETS.md).
 
-⚠️ **IMPORTANTE**: Datasets em `data/raw/` estão no `.gitignore` (PHI potencial, tamanhos grandes). Use o script automático:
+### 🤖 Setup automático (recomendado)
+
+Todos os 4 datasets acima podem ser baixados automaticamente:
+
 ```bash
-python scripts/setup_data_colab.py  # No Colab
+# Baixa MedQuAD, ChatBulário, CID-10 e Synthetic Notes
+python scripts/setup_data_colab.py
 ```
+
+**Tempo**: ~10 min | **Não requer upload manual** | **Funciona em qualquer Colab/máquina**
+
+### 🗑️ Datasets rejeitados/descartados
+
+| Dataset | Motivo da remoção |
+|---|---|
+| ~~ANVISA Medicamentos (CSV)~~ | Substituído por ChatBulário (só tinha metadados, sem bula completa) |
+| ~~PMC Open Access~~ | URL quebrada (mudou em abril/2026); ChatBulário é suficiente em PT-BR |
+| ~~PubMedQA~~ | Não usado no pipeline final |
+| ~~MedQuAD-master/ (pasta raw)~~ | Pré-processado em `medquad_finetuning.jsonl` |
+| ~~QA-TestSet-LiveQA-Med~~ | Substituído pelos 15 testes de generalização do notebook |
+| ~~CID-10 capítulos~~ | Subcategorias é mais completo (12k vs 22) |
+
+⚠️ **IMPORTANTE**: Datasets em `data/raw/` estão no `.gitignore` (PHI potencial, tamanhos grandes). Use o script automático acima.
 
 ⚠️ **IMPORTANTE**: Todos os datasets com dados pessoais foram processados por
 `src/data/01_anonimizar.py` (MedQuAD) ou `src/data/04_anonimizar_synthetic.py`

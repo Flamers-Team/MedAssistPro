@@ -108,8 +108,7 @@ O Tech Challenge Fase 3 exige a construção de um **assistente médico intelige
 | # | Dataset | Fonte | Idioma | Amostras | Uso no projeto |
 |---|---------|-------|-------|----------|----------------|
 | 1 | **MedQuAD** | NIH (aberto) | 🇺🇸 EN | 16.407 → 16.325 (anonimizado) | Fine-tuning principal |
-| 2 | **PubMedQA** | NIH/HuggingFace | 🇺🇸 EN | 211.269 | Fine-tuning adicional (avaliação) |
-| 3 | **ChatBulário** | HuggingFace | 🇧🇷 PT | 68.938 → 10.000 indexados | RAG #2 (bulas PT-BR) |
+| 2 | **ChatBulário** ⭐ | HuggingFace | 🇧🇷 PT | 68.938 → 10.000 indexados | RAG #1 (bulas PT-BR) |
 | 4 | **Synthetic Clinical Notes** | TonicAI/HuggingFace | 🇺🇸 EN | 3.381 (anonimizado) | RAG #2 (notas SOAP) |
 | 5 | **CID-10** | DATASUS | 🇧🇷 PT | 12.451 códigos | Mapeamento de doenças PT-BR |
 
@@ -128,7 +127,7 @@ O Tech Challenge Fase 3 exige a construção de um **assistente médico intelige
 | MIMIC-III | Requer aprovação CITI (1-2 semanas) + DUA. Risco de burocracia travar entrega. |
 | PMC OA Subset completo | ~3.5M artigos = 100+ GB. Inviável para Tech Challenge. |
 | Bulas ANVISA via scraping direto | API oficial já fornece CSV completo. |
-| Dados sintéticos via LLM própria | Risco de circular dependency e alucinações. Usar PubMedQA artificial que é público. |
+| Dados sintéticos via LLM própria | Risco de circular dependency e alucinações. Usar TonicAI/synthetic_clinical_notes (público). |
 
 ### 2.5. Arquitetura RAG: 2 Vector Stores + ChromaDB
 
@@ -665,7 +664,7 @@ Techchalleng3/                          (GitHub: Flamers-Team/Techchalleng3)
 | 3 | Normalização + split 90/5/5 | ✅ | `src/data/02_normalizar_e_split.py` |
 | 4 | Validação qualitativa (93.5/100) | ✅ | `src/data/03_validar_qualidade.py` |
 | 5 | Anonimização Synthetic Notes | ✅ | `src/data/04_anonimizar_synthetic.py` |
-| 6 | Download ANVISA + CID-10 + PubMedQA | ✅ | `data/raw/` |
+| 6 | Download datasets (MedQuAD, ChatBulário, CID-10, Synthetic) | ✅ | `data/raw/` |
 | 7 | Indexação ChromaDB (3 vector stores: ChatBulário + CID-10 + Synthetic) | ✅ | `data/processed/chroma_index/` |
 | 8 | Notebook de fine-tuning (814 linhas) | ✅ | `notebooks/02_finetuning.ipynb` |
 | 9 | Fine-tuning executado no Colab Pro | ✅ | Drive: `biomistral-medquad-lora/` |
@@ -787,8 +786,8 @@ python src/data/04_anonimizar_synthetic.py
 ### 12.2. RAG
 
 ```bash
-# Indexar ANVISA + CID-10 + Synthetic no ChromaDB
-python src/rag/build_index_local.py
+# Indexar ChatBulário + CID-10 + Synthetic no ChromaDB
+python src/rag/build_index_chatbulario.py 10000
 ```
 
 ### 12.3. Fine-Tuning (Colab Pro)
