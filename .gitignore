@@ -10,6 +10,9 @@
 # - Ambiente Python (venv)
 # ===========================================================
 
+# === AMBIENTE NODE (frontend) ===
+node_modules/
+
 # === AMBIENTE PYTHON ===
 __pycache__/
 *.py[cod]

@@ -20,12 +20,22 @@ Assistente médico que combina:
 ## 📂 Estrutura do Projeto
 
 ```
-Techchalleng3/
-├── src/
-│   └── data/                       # Pipeline de dados
-│       ├── 01_anonimizar.py        # Anonimização com regex
-│       ├── 02_normalizar_e_split.py # Normalização + train/val/test
-│       └── 03_validar_qualidade.py # Validação qualitativa
+MedAssistPro/
+├── backend/                        # API FastAPI (Python)
+│   └── src/
+│       ├── api/                    # App FastAPI + rotas
+│       ├── agents/                 # Triagem, síntese, validação
+│       ├── graph/                  # Workflow LangGraph
+│       ├── llm/                    # Cliente do modelo + tradução
+│       ├── rag/                    # Retriever + indexação ChromaDB
+│       ├── logging/                # Auditoria (SQLite)
+│       ├── docs/                   # Geração de documentos (PDF)
+│       └── data/                   # Pipeline de dados
+│           ├── 01_anonimizar.py        # Anonimização com regex
+│           ├── 02_normalizar_e_split.py # Normalização + train/val/test
+│           └── 03_validar_qualidade.py # Validação qualitativa
+├── frontend/                       # UI React + Vite
+│   └── src/
 ├── notebooks/
 │   └── 02_finetuning.ipynb         # Notebook Colab Pro (A100)
 ├── docs/
@@ -43,9 +53,9 @@ Techchalleng3/
 
 ```bash
 # Baixar MedQuAD e gerar dataset bruto
-python src/data/01_anonimizar.py
-python src/data/02_normalizar_e_split.py
-python src/data/03_validar_qualidade.py
+python backend/src/data/01_anonimizar.py
+python backend/src/data/02_normalizar_e_split.py
+python backend/src/data/03_validar_qualidade.py
 ```
 
 ### 2. Fine-tuning (Colab Pro)
@@ -109,23 +119,23 @@ python scripts/setup_data_colab.py
 ⚠️ **IMPORTANTE**: Datasets em `data/raw/` estão no `.gitignore` (PHI potencial, tamanhos grandes). Use o script automático acima.
 
 ⚠️ **IMPORTANTE**: Todos os datasets com dados pessoais foram processados por
-`src/data/01_anonimizar.py` (MedQuAD) ou `src/data/04_anonimizar_synthetic.py`
+`backend/src/data/01_anonimizar.py` (MedQuAD) ou `backend/src/data/04_anonimizar_synthetic.py`
 (Synthetic Notes) antes de uso em fine-tuning/RAG.
 
 ## 📂 Pipeline de dados
 
 ```bash
 # Passo 1: Anonimização do MedQuAD
-python src/data/01_anonimizar.py
+python backend/src/data/01_anonimizar.py
 
 # Passo 2: Normalização + train/val/test
-python src/data/02_normalizar_e_split.py
+python backend/src/data/02_normalizar_e_split.py
 
 # Passo 3: Validação qualitativa (score 93.5/100)
-python src/data/03_validar_qualidade.py
+python backend/src/data/03_validar_qualidade.py
 
 # Passo 4: Anonimização do Synthetic Clinical Notes
-python src/data/04_anonimizar_synthetic.py
+python backend/src/data/04_anonimizar_synthetic.py
 ```
 
 Resultado em `data/processed/`:
@@ -147,8 +157,7 @@ Pergunta PT-BR → MarianMT (PT→EN) → BioMistral → MarianMT (EN→PT) → 
 from src.llm.assistente_traduzido import AssistenteTraduzido
 
 bot = AssistenteTraduzido(
-    modelo_path="biomistral-medquad-lora",  # caminho do modelo
-    device="cuda",
+    modelo_path="biomistral-medquad-lora",  # caminho do modelo (GPU/CPU detectados automaticamente)
 )
 print(bot.perguntar("O que é diabetes?"))
 ```
@@ -159,18 +168,23 @@ print(bot.perguntar("O que é diabetes?"))
 - Adiciona ~3-5s de latência
 - MarianMT foi treinado com mais PT-EU que PT-BR
 
-Ver mais detalhes em `docs/MANUAL_UI.md` (seção "Tradução PT-BR ↔ EN") e `src/llm/assistente_traduzido.py`.
+Ver mais detalhes em `docs/MANUAL_UI.md` (seção "Tradução PT-BR ↔ EN") e `backend/src/llm/assistente_traduzido.py`.
 
 ## 🖥️ Interface Web (UI do Médico)
 
-O projeto usa uma interface moderna em React + Vite como frontend principal, com login, consulta clínica, auditoria e documentos.
+O projeto usa uma interface moderna em React + Vite como frontend, consumindo uma API FastAPI como backend — login, consulta clínica, auditoria e documentos.
 
 ```bash
-# 1. Instalar dependências do frontend
+# 1. Rodar a API backend
+cd backend
+pip install -r requirements.txt
+python -m uvicorn src.api.app:app --reload --port 8000
+```
+
+```bash
+# 2. Em outro terminal, rodar o frontend
 cd frontend
 npm install
-
-# 2. Rodar a interface local
 npm run dev -- --host 127.0.0.1 --port 3000
 ```
 
@@ -210,7 +224,7 @@ A documentação está organizada em **3 níveis** (do leigo ao avançado):
 ### 📋 Para usar (NÍVEL 2 - Prático)
 
 - **[`docs/RELATORIO_TECNICO_PARA_EQUIPE.md`](docs/RELATORIO_TECNICO_PARA_EQUIPE.md)** — Relatório técnico completo (30 KB).
-- **[`docs/MANUAL_UI.md`](docs/MANUAL_UI.md)** — Como usar a interface Gradio.
+- **[`docs/MANUAL_UI.md`](docs/MANUAL_UI.md)** — Como usar a interface web (histórico da UI Gradio anterior à migração para React).
 - **[`docs/GUIA_DATASETS.md`](docs/GUIA_DATASETS.md)** — Como baixar e preparar os datasets.
 
 ### 🔬 Para aprofundar (NÍVEL 3 - Acadêmico)
@@ -241,6 +255,6 @@ Projeto desenvolvido para o **Tech Challenge FIAP - Fase 3** do curso de **Intel
 - RAG (Retrieval-Augmented Generation) com 2 fontes
 - Validação humana obrigatória (HITL)
 - Logging e auditoria completos
-- Interface para o médico (Gradio)
+- Interface para o médico (React + FastAPI)
 - Relatório técnico e vídeo demonstrativo
 

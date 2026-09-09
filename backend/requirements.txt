@@ -1,10 +1,34 @@
+# --- API ---
 fastapi>=0.110.0
 uvicorn>=0.29.0
 pydantic>=2.7.0
 python-dotenv>=1.0.1
+
+# --- Grafo (LangGraph) ---
 langgraph>=0.2.0
 langchain-core>=0.3.0
+
+# --- RAG ---
 chromadb==0.5.23
 sentence-transformers>=3.0
+
+# --- LLM (inferencia real — BioMistral + LoRA via transformers/peft) ---
+# ATENCAO: "pip install torch" sozinho instala a build CPU-only por padrao,
+# mesmo em maquina com GPU. Para usar a GPU, instale o torch com a build CUDA
+# correta ANTES deste arquivo — veja https://pytorch.org/get-started/locally/
+# Ex.: pip install torch --index-url https://download.pytorch.org/whl/cu121
+torch>=2.2
+transformers>=4.45
+peft>=0.13
+accelerate>=0.34
+bitsandbytes>=0.44
+sentencepiece
+safetensors
+huggingface_hub
+
+# --- Traducao PT-BR <-> EN (MarianMT) ---
+sacremoses
+
+# --- App / Docs / Logs ---
 reportlab>=4.2
 loguru>=0.7

@@ -40,15 +40,18 @@ def triar(relato: str) -> dict:
 
     text = llm.invoke(messages)
 
+    # Parse JSON (try/except com fallback)
     try:
         match = re.search(r"\{.*\}", text, re.DOTALL)
         if match:
             result = json.loads(match.group(0))
+            # Validar campos
             if "categoria" in result:
                 return result
     except (json.JSONDecodeError, AttributeError):
         pass
 
+    # Fallback seguro
     return {
         "categoria": "URGENTE",
         "justificativa": "Falha no parsing — assumindo URGENTE por segurança",

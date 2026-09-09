@@ -18,8 +18,7 @@ from src.rag.retriever import Retriever
 from src.logging.audit import init_db, log_event
 
 
-APP_ROOT = Path(__file__).resolve().parents[2]
-
+APP_ROOT = Path(__file__).resolve().parents[3]
 
 def _safe_bool(value: Any) -> bool:
     if isinstance(value, bool):
