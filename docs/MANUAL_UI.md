@@ -1,19 +1,231 @@
-# 🖥️ Manual da Interface Gradio — Assistente Médico
+# 🖥️ Manual da Interface React — Assistente Médico
 
-> Documentação completa de uso da interface web do Tech Challenge Fase 3
+> Documentação completa de uso da interface web (React + Vite) do Tech Challenge Fase 3
 
-## 🚀 Quick Start (30 segundos)
+## 🚀 Quick Start (60 segundos)
 
 ```bash
-# 1. Instalar Gradio
-pip install gradio==4.44.0
+# 1. Instalar dependências do frontend
+cd frontend
+npm install
 
-# 2. Rodar a aplicação
-python src/ui/gradio_app.py
+# 2. Rodar em modo desenvolvimento
+npm run dev -- --host 127.0.0.1 --port 3000
 
 # 3. Acessar no navegador
-# http://127.0.0.1:7860
+# http://127.0.0.1:3000
 # Login: medico / demo123
+```
+
+**O que acontece**:
+- Vite sobe servidor de dev com hot-reload
+- React monta a aplicação no `<div id="root">`
+- Login aparece primeiro, depois libera as 4 abas
+
+**Pré-requisitos**:
+- Node.js 18+ (testado com 18.17)
+- npm 9+ (vem com Node)
+
+---
+
+## 📂 Estrutura do Frontend
+
+```
+frontend/
+├── index.html                  # HTML raiz (carrega main.jsx)
+├── package.json                # Deps React 18, Vite 5
+├── vite.config.js              # Config Vite (porta 3000)
+└── src/
+    ├── main.jsx                # Entry point (ReactDOM.createRoot)
+    ├── App.jsx                 # Componente principal (4 abas)
+    └── styles.css              # Tema dark + estilos custom
+```
+
+**Tecnologias**:
+- **React 18.3.1** — UI declarativa com hooks
+- **Vite 5.4** — Bundler dev com hot-reload
+- **Sem libs extras** — apenas `react` e `react-dom`
+
+---
+
+## 🎯 Estrutura da Interface (4 Abas)
+
+### 📋 Aba 1: Consulta
+
+**Função**: Médico insere relato e recebe triagem + RAG + síntese.
+
+**Componentes**:
+- Textarea com relato do paciente (editável)
+- Botão **"Iniciar consulta"** (processa o relato)
+- Botão **"Limpar"** (zera textarea)
+- 3 boxes de resultado:
+  - **🚨 Triagem** — categoria + justificativa + red flags + confiança
+  - **📚 RAG** — top-K trechos relevantes do ChromaDB
+  - **🧠 Síntese** — resumo + exames sugeridos + medicações
+
+**Estado atual**: dados mockados (em `App.jsx`). Para integrar com backend, substituir `handleProcess` por chamada à API Python.
+
+### 📊 Aba 2: Auditoria
+
+**Função**: Dashboard de logs SQLite e métricas.
+
+**Componentes**:
+- 4 cards de métricas: Total de eventos, Sessões ativas, Latência média, Custo estimado
+- Tabela de eventos recentes (hora, agente, evento, status)
+
+**Estado atual**: dados mockados (`mockMetrics`, `auditEvents`). Conectar com `src/logging/dashboard.py` para dados reais.
+
+### 📁 Aba 3: Documentos
+
+**Função**: Lista de PDFs gerados pelo sistema.
+
+**Componentes**:
+- Cards por documento (nome, data, tamanho)
+- Background gradient
+
+**Estado atual**: dados mockados (`documents`). Integrar com `src/docs/generator.py`.
+
+### ⚙️ Aba 4: Config
+
+**Função**: Informações do sistema.
+
+**Componentes**:
+- Tabela com 6 linhas: Modelo, Status do RAG, Banco, Documentos, Frontend, GitHub
+
+**Estado atual**: hardcoded (`systemInfo`). Pode ser alimentado por endpoint `/api/info`.
+
+---
+
+## 🔐 Autenticação
+
+**Estado atual**: client-side (mock)
+
+```javascript
+// App.jsx (linha 35)
+const [login, setLogin] = useState({ username: 'medico', password: 'demo123' });
+
+const canLogin = useMemo(
+  () => login.username === 'medico' && login.password === 'demo123',
+  [login]
+);
+```
+
+**Credenciais padrão**:
+- Usuário: `medico`
+- Senha: `demo123`
+
+**Para produção**, substituir por:
+- JWT com backend Python (`src/auth/`)
+- OAuth2 (Google/Microsoft)
+- Integração com SSO do hospital
+
+---
+
+## 🛠️ Customizações Comuns
+
+### Mudar porta (dev)
+
+Editar `frontend/vite.config.js`:
+```javascript
+export default defineConfig({
+  server: {
+    host: '127.0.0.1',
+    port: 3000,  // ← mudar aqui
+  },
+});
+```
+
+### Mudar tema (cores)
+
+Editar `frontend/src/styles.css` (linha 1-10):
+```css
+:root {
+  background: #0b1220;  /* cor de fundo dark */
+  color: #e5eefb;       /* cor de texto */
+}
+```
+
+### Adicionar nova aba
+
+Em `App.jsx`:
+```javascript
+// 1. Adicionar no array
+{['consulta', 'auditoria', 'documentos', 'config', 'relatorios'].map(...)}
+
+// 2. Criar conteúdo
+relatorios: (
+  <div className="panel">
+    <h3>Relatórios</h3>
+    ...
+  </div>
+)
+```
+
+### Build de produção
+
+```bash
+cd frontend
+npm run build
+# Gera dist/ pronto pra deploy
+```
+
+Para servir o build:
+```bash
+npm run preview -- --host 127.0.0.1 --port 4173
+# Abre em http://127.0.0.1:4173
+```
+
+---
+
+## 🔌 Integração com Backend Python
+
+**Estado atual**: frontend standalone com mocks.
+
+**Para conectar com backend** (próximo passo):
+
+### 1. Criar API em Python (FastAPI/Flask)
+
+```python
+# src/api/server.py
+from fastapi import FastAPI
+from src.agents.triagem import TriagemAgent
+
+app = FastAPI()
+
+@app.post("/api/consulta")
+async def consulta(relato: str):
+    # Roda LangGraph com RAG + LLM
+    resultado = await run_pipeline(relato)
+    return resultado
+```
+
+### 2. Chamar API no React
+
+```javascript
+// App.jsx
+const handleProcess = async () => {
+  const response = await fetch('http://localhost:8000/api/consulta', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ relato }),
+  });
+  const data = await response.json();
+  setResult(data);
+};
+```
+
+### 3. Habilitar CORS
+
+```python
+# src/api/server.py
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 ```
 
 ---
@@ -22,7 +234,7 @@ python src/ui/gradio_app.py
 
 ### Opção 1: Mesma WiFi (rede local)
 
-**Vantagens**: gratuito, sem limite de tempo, baixo risco de segurança  
+**Vantagens**: gratuito, sem limite de tempo
 **Quando usar**: médico no hospital/clínica com WiFi compartilhada
 
 **Como configurar**:
@@ -41,290 +253,107 @@ Get-NetIPAddress | Where-Object {$_.AddressFamily -eq "IPv4"}
 ```
 Configurações → Firewall → Configurações avançadas
 → Regras de entrada → Nova regra
-→ Porta 7860 → Permitir conexão
+→ Porta 3000 → Permitir conexão
 ```
 
-3. **No celular** (mesma WiFi):
-```
-http://192.168.X.X:7860
-```
-
-### Opção 2: URL Pública (share=True)
-
-**Vantagens**: funciona em qualquer rede 4G/5G  
-**Quando usar**: demo pra equipe, vídeo do Tech Challenge, mostrar pra avaliador
-
-**Como ativar**:
-```python
-# src/ui/gradio_app.py, última linha:
-demo.launch(share=True, ...)  # ← mudar pra True
+3. **Rodar Vite com --host 0.0.0.0**:
+```bash
+cd frontend
+npm run dev -- --host 0.0.0.0 --port 3000
 ```
 
-**O que acontece**:
-- Gradio cria servidor local
-- Cria túnel via `gradio.live`
-- Imprime URL tipo: `https://abc123def.gradio.live`
-- URL funciona em qualquer celular/PC do mundo
-- **Expira em72h**
-
-### Opção 3: Deploy Permanente (HuggingFace Spaces - GRÁTIS)
-
-**Vantagens**: URL permanente, sem expirar, gratuito, escalável  
-**Quando usar**: deploy de longa duração
-
-**Como fazer** (resumido):
-
-1. Criar conta: https://huggingface.co/
-2. Criar Space: https://huggingface.co/new-space
-3. Upload de:
- - `src/ui/gradio_app.py` → renomear pra `app.py`
-   - `requirements.txt` (gerar abaixo)
-4. URL final: `https://huggingface.co/spaces/seu-user/assistente-medico`
-
-| `requirements.txt` mínimo:
+4. **No celular** (mesma WiFi):
 ```
-gradio==4.44.0
-huggingface_hub<0.24
-chromadb==0.5.5
-sentence-transformers
-loguru
+http://192.168.X.X:3000
 ```
 
-### Opção 4: Google Colab (para testes)
+### Opção 2: Build + deploy em servidor
 
-**Vantagens**: GPU A100 grátis, fácil de demonstrar, rápido pra testar  
-**Quando usar**: desenvolvimento, demonstração para equipe, validação de modelo
+```bash
+cd frontend
+npm run build
+# Copiar pasta dist/ pro servidor (nginx, Apache, etc.)
+```
+
+Configuração nginx exemplo:
+```nginx
+server {
+  listen 80;
+  server_name assistente.exemplo.com;
+  root /var/www/assistente/dist;
+  index index.html;
+}
+```
+
+### Opção 3: HuggingFace Spaces (Static)
+
+**Vantagens**: URL permanente, grátis
+**Quando usar**: deploy de longa duração para equipe
 
 **Como fazer**:
-1. Abra o notebook: `notebooks/rodarcolab.ipynb`
-2. Execute as células em ordem
-3. O notebook cuida de:
-   - Montar Google Drive
-   - Instalar dependências
-   - Clonar repositório
-   - Copiar modelo LoRA
-   - Indexar RAG (ChatBulário)
-   - Subir UI
-
-**⚠️ IMPORTANTE**: Antes de subir a UI, garanta que os patches foram aplicados:
-
-**Patch 1 — gradio_client** (corrige `TypeError: argument of type 'bool' is not iterable`):
-```python
-import gradio_client, os
-gc_path = os.path.join(os.path.dirname(gradio_client.__file__), "utils.py")
-with open(gc_path, "r") as f: content = f.read()
-
-patches = [
-    ('if "enum" in schema:', 'if isinstance(schema, dict) and "enum" in schema:'),
-    ('if "const" in schema:', 'if isinstance(schema, dict) and "const" in schema:'),
-]
-for bug, fix in patches:
-    if bug in content:
-        content = content.replace(bug, fix)
-with open(gc_path, "w") as f: f.write(content)
-```
-
-**Patch 2 — caminho do modelo** (UI espera `/content/Techchalleng3/biomistral-medquad-lora`):
-```python
-import shutil
-from pathlib import Path
-SOURCE = Path("/content/biomistral-medquad-lora")
-TARGET = Path("/content/Techchalleng3/biomistral-medquad-lora")
-if not TARGET.exists() and SOURCE.exists():
-    shutil.copytree(SOURCE, TARGET)
-```
-
-**Patch 3 — huggingface_hub downgrade** (corrige `ImportError: HfFolder`):
-```bash
-pip install "huggingface_hub==0.20.0"
-```
-
-**Tempo total**: ~15 min (1ª vez, com download de dados e modelo)  
-**URL gerada**: tipo `https://xxxxx.gradio.live` — funciona em qualquer dispositivo do mundo
-
----
-
-## 🎯 Estrutura da Interface (4 Abas)
-
-### 📋 Aba 1: Consulta
-
-Fluxo em5 etapas visuais:
-
-**Etapa 1: Input do médico**
-```
-👤 Nome: [Maria Silva]    🎂 Idade: [45]    ⚧ Sexo: [Feminino]
-📝 Relato: "Paciente relata dor torácica em aperto há 3h..."
-```
-
-**Etapa 2: Botão "🚀 Iniciar Consulta"**
-
-**Etapa 3: Resultados em 4 colunas**
-- 🚨 Triagem: {categoria, justificativa, red_flags, confianca}
-- 📚 RAG PMC: chunks da literatura com citações
-- 🏥 RAG Interno: protocolos do hospital
-- 🧠 Síntese: hipóteses diagnósticas + exames + medicações sugeridas
-
-**Etapa 4: Decisão humana (HITL — OBRIGATÓRIO)**
-```
-[✅ Aprovar como está]   [✏️ Editar texto]   [❌ Rejeitar]
-```
-
-**Etapa 5: Documentos gerados (download)**
-- 📄 Prontuário.pdf
-- 📄 Atestado.pdf
-- 📄 Receita.pdf
-
-### 📊 Aba 2: Auditoria
-
-Visualiza o banco SQLite de logs:
-- Total de eventos
-- Sessões ativas
-- Latência média por agente
-- Custo estimado em USD
-- Eventos por médico
-- Lista raw de eventos
-
-**Como usar**:
-1. Slider "Período (horas)" — escolha janela de tempo
-2. Botão "🔄 Atualizar" — recarrega dashboard
-3. Veja métricas + dashboard textual completo
-
-### 📁 Aba 3: Documentos
-
-Lista todos os PDFs/TXTs gerados pelo sistema:
-- Ordenado por data (mais recentes primeiro)
-- Mostra tamanho + timestamp
-- Botão "🔄 Atualizar" pra refresh
-
-### ⚙️ Aba 4: Configurações
-
-Tabela com informações do sistema:
-- Modelo carregado
-- Status do RAG
-- Paths de banco e documentos
-- Versões de bibliotecas
-- Link do GitHub
-
----
-
-## 🔐 Segurança e Autenticação
-
-### Auth básica (built-in)
-
-```python
-demo.launch(auth=("medico", "demo123"))
-```
-
-- Usuário/senha únicos pra todos
-- Suficiente pra demo
-- **NÃO** usar em produção real
-
-### Auth customizada (avançado)
-
-```python
-def autenticar(username, password):
-    # Verificar em DB, LDAP, OAuth, etc
-    return username == "dr.silva" and password == "senha_real"
-
-demo.launch(auth=autenticar)
-```
-
-### HTTPS + domínio próprio (produção)
-
-- Usar reverse proxy (nginx) com SSL (Let's Encrypt)
-- Domínio institucional: `assistente.hospital.com`
-- Certificado válido (grátis via Let's Encrypt)
-
----
-
-## 🛠️ Customizações Comuns
-
-### Mudar porta
-```python
-demo.launch(server_port=8080)  # padrão é 7860
-```
-
-### Mudar tema
-```python
-with gr.Blocks(theme=gr.themes.Glass()):  # ou Monochrome(), Soft(), etc
-    ...
-```
-
-### Adicionar logo do hospital
-```python
-gr.Image("logo_hospital.png", label="Hospital XPTO")
-```
-
-### Adicionar export pra PDF
-```python
-def gerar_pdf(sintese):
-    # ReportLab ou weasyprint
-    ...
-    return "prontuario.pdf"
-
-btn_pdf = gr.Button("📥 Baixar PDF")
-btn_pdf.click(gerar_pdf, inputs=[sintese_state], outputs=[gr.File()])
-```
-
-### Adicionar gráficos de auditoria
-```python
-import plotly.graph_objects as go
-
-def plot_eventos_por_agente():
-    # Plotly chart
-    fig = go.Figure(data=[go.Bar(x=["Triagem", "Síntese", "Validação"], y=[10, 15, 8])])
-    return fig
-
-gr.Plot(label="Eventos por agente")
-```
+1. Criar Space Static em https://huggingface.co/new-space
+2. Upload do conteúdo de `frontend/dist/` (gerado por `npm run build`)
+3. URL: `https://huggingface.co/spaces/<user>/<space-name>`
 
 ---
 
 ## 📊 Performance Esperada
 
-| Cenário | Latência esperada |
+| Cenário | Tempo |
 |---|---|
-| Carregar UI | <2s |
-| Consulta completa (mock) | 1-2s |
-| Consulta completa (LLM real) | 8-15s |
-| Gerar PDFs | <1s (mock) / 3-5s (ReportLab) |
-| Carregar auditoria | <500ms |
+| Carregar página inicial (cold start) | < 1s |
+| Navegar entre abas (sem backend) | Instantâneo |
+| Rodar `npm run dev` | ~3-5s |
+| Rodar `npm run build` | ~10-15s |
+| Tamanho do build (dist/) | ~150 KB gzipped |
+
+**Para mobile**: já é responsivo (CSS usa viewport units e flexbox).
 
 ---
 
 ## 🐛 Troubleshooting
 
-### "Address already in use"
+### "Port 3000 is already in use"
 
-Porta 7860 ocupada. Mude:
-```python
-demo.launch(server_port=8080)
-```
-
-### "ModuleNotFoundError: No module named 'gradio'"
+Outro processo está usando a porta 3000. Soluções:
 
 ```bash
-pip install gradio==4.44.0
+# 1. Matar o processo (Windows)
+netstat -ano | findstr :3000
+taskkill /PID <PID_encontrado> /F
+
+# 2. Ou mudar a porta
+npm run dev -- --port 3001
 ```
 
-### "ImportError: cannot import name 'HfFolder'"
+### "npm: command not found"
+
+Node.js não está instalado. Baixar de https://nodejs.org/
+
+### "Cannot find module 'react'"
 
 ```bash
-pip install "huggingface_hub<0.24"
+cd frontend
+rm -rf node_modules
+npm install
 ```
 
-### Não consigo acessar pelo celular
+### Página carrega mas fica em branco
 
-1. Verificar mesma WiFi
-2. Firewall liberado (porta 7860)
-3. IP correto (rodar `ipconfig`)
-4. Testar `http://127.0.0.1:7860` no PC primeiro
+Verificar console do navegador (F12). Geralmente é erro de import no `App.jsx`.
 
-### App abre mas não responde
+```bash
+# Reiniciar Vite
+Ctrl+C
+npm run dev
+```
 
-- Ver logs no terminal
-- Conferir se LLM/RAG estão carregados (modo mock funciona sem LLM)
-- Logs SQLite acessíveis pela aba Auditoria
+### Build falha com erro de memória
+
+```bash
+# Aumentar heap do Node
+NODE_OPTIONS=--max-old-space-size=4096 npm run build
+```
 
 ---
 
@@ -332,177 +361,55 @@ pip install "huggingface_hub<0.24"
 
 ### Demonstração no vídeo (15min):
 
-1. **Abrir a UI** (mostra responsividade no celular)
-2. **Inserir caso fictício** (botão "exemplo" seria útil)
-3. **Mostrar pipeline** passo-a-passo
-4. **HITL**: médico edita uma sugestão
-5. **Documentos**: download dos PDFs gerados
-6. **Auditoria**: mostrar dashboard de logs
-7. **Celular**: mostrar mesma UI no celular (Tela dividida PC+celular)
+1. **Login** (30s)
+   - Abre `http://localhost:3000`
+   - Mostra tela de login
+   - Entra com `medico` / `demo123`
 
-### Argumentos fortes pra apresentar:
+2. **Aba Consulta** (5min)
+   - Digita relato: "Paciente 45 anos, dor torácica..."
+   - Clica "Iniciar consulta"
+   - Mostra triagem + RAG + síntese
 
-| Argumento | Como mostrar na UI |
+3. **Aba Auditoria** (3min)
+   - Mostra dashboard com métricas
+   - Explica que cada chamada LLM/RAG é logada em SQLite
+
+4. **Aba Documentos** (2min)
+   - Lista PDFs gerados (prontuário, atestado, receita)
+
+5. **Aba Config** (2min)
+   - Mostra info do sistema
+   - Confirma modelo fine-tunado carregado
+
+6. **Código** (3min)
+   - Mostra `frontend/src/App.jsx`
+   - Explica componentes React
+
+---
+
+## 🔗 Links Úteis
+
+- **React docs**: https://react.dev
+- **Vite docs**: https://vitejs.dev
+- **Backend (LangGraph)**: `src/graph/workflow.py`
+- **RAG**: `src/rag/retriever.py`
+- **LLM**: `src/llm/client.py`
+- **Notebook de execução**: `notebooks/rodarcolab.ipynb`
+
+---
+
+## ⚠️ Limitações Conhecidas
+
+| Limitação | Workaround |
 |---|---|
-| **HITL obrigatório** | Botões Aprovar/Editar/Rejeitar visíveis |
-| **Explainability** | Citações `[Fonte: PMC-XXX]` aparecem na síntese |
-| **RAG duplo** | 2 colunas: RAG PMC + RAG Interno |
-| **Auditoria** | Aba dedicada com dashboard |
-| **3 agentes** | 3 outputs separados: Triagem, RAG, Síntese |
-| **Disclaimer** | Sempre visível no topo da síntese |
+| Dados são mockados em `App.jsx` | Substituir por fetch() no backend |
+| Sem auth real | Adicionar JWT/OAuth em produção |
+| Sem histórico de consultas | Adicionar localStorage ou backend |
+| Sem upload de imagens/exames | Adicionar componente de upload |
 
 ---
 
-## 🇧🇷 Tradução PT-BR ↔ EN (NOVO)
-
-### O que é
-
-O modelo fine-tuned (BioMistral-7B) foi treinado 100% em inglês. Para suportar português brasileiro, adicionamos uma camada de tradução bidirecional usando MarianMT.
-
-### Como funciona
-
-```
-Pergunta PT-BR
-      ↓
-[MarianMT PT → EN]
-      ↓
-[BioMistral Fine-Tuned]  ← responde em inglês
-      ↓
-[MarianPT EN → PT]
-      ↓
-Resposta PT-BR
-```
-
-### Como usar no código
-
-```python
-from src.llm.assistente_traduzido import AssistenteTraduzido
-
-bot = AssistenteTraduzido(
-    modelo_path="biomistral-medquad-lora",  # ou caminho local
-    device="cuda",  # ou "cpu"
-)
-
-# Pergunta em PT-BR, resposta em PT-BR
-resposta = bot.perguntar("O que é diabetes?")
-print(resposta)
-```
-
-### Modo conversacional
-
-```bash
-python src/llm/assistente_traduzido.py
-# Modo chat interativo
-```
-
-### Limitações conhecidas
-
-- Termos técnicos médicos podem ser traduzidos literalmente
-- Latência adicionada: ~3-5s por pergunta (total: 8-15s)
-- MarianMT foi treinado mais com PT europeu (não PT-BR nativo)
-
----
-
-## 📞 Suporte
-
-- **Código fonte**: `src/ui/gradio_app.py` (18 KB, documentado)
-- **Código tradutor**: `src/llm/assistente_traduzido.py` (8 KB)
-- **Código RAG**: `src/rag/retriever.py` + `src/rag/build_index_chatbulario.py`
-- **Logs**: aba Auditoria da própria UI
-- **Issues**: GitHub Issues do repo `Flamers-Team/Techchalleng3`
-
----
-
-# 🆕 Atualização ago/2026 (08/09)
-
-Esta seção documenta as **mudanças recentes** que não estão refletidas no corpo principal do manual.
-
-## Mudanças Críticas
-
-### 1. Remoção do mock PMC (fontes inventadas)
-
-**Antes**: `retrieve_pmc()` retornava fontes falsas tipo `PMC-10000`, `PMC-10001`.
-
-**Agora**: Função removida. RAG usa apenas **ChatBulário** (bulas reais em PT-BR).
-
-**Impacto**: 
-- ✅ Nenhuma fonte falsa na UI
-- ✅ Mensagens de erro claras se RAG falhar
-- ❌ Sem acesso à "literatura científica" (você pode adicionar AWS S3 depois se quiser)
-
-### 2. RAG completo com 3 fontes (25.832 docs)
-
-| Collection | Docs | Conteúdo |
-|---|---|---|
-| `chatbulario` | 10.000 | Bulas ANVISA (PT-BR) |
-| `cid10` | 12.451 | Códigos de doenças |
-| `synthetic` | 3.381 | Notas clínicas sintéticas |
-| **Total** | **25.832** | |
-
-### 3. Tratamento de erro robusto
-
-- `LLMNotAvailableError` levantada quando modelo não carrega
-- Mensagens de erro com instruções de como resolver
-- Não retorna mais dados falsos/fixos
-
-### 4. Refatoração `docs/generator.py`
-
-**Antes**: CRM hardcoded `"12345-DF"`, dados de exemplo fixos.
-
-**Agora**: Placeholders claros (`"[PACIENTE - inserir nome]"`, `"[CRM-XX]"`).
-
-**Em produção**: dados vêm do input do médico via gradio_app.py.
-
-### 5. Limpeza de cache
-
-Removidos 178 MB de arquivos `.arrow` (cache HuggingFace temporário).
-
-## Próximos passos
-
-- [ ] Gravar vídeo demo
-- [ ] Deploy HuggingFace Space (opcional, pago)
-- [ ] Substituir `PMC-10000` mock se você precisar de literatura
-
----
-
-## 🗄️ RAG — Base de Conhecimento (ATUALIZADO AGO/2026)
-
-### O que mudou
-
-Até ago/2026 o RAG usava `anvisa_medicamentos.csv` (só metadados). Agora usa **ChatBulário** (texto completo das bulas em PT-BR).
-
-### Comparação
-
-| Aspecto | Antes (anvisa_medicamentos.csv) | Agora (ChatBulário) |
-|---|---|---|
-| Conteúdo | Nome, classe, registro, princípio ativo | **Texto completo da bula** |
-| Formato | CSV tabular | Pares pergunta-resposta |
-| Total | 43.445 metadados | **68.938 pares Q&A** |
-| Idioma | PT-BR (metadados) | PT-BR (texto natural) |
-| Perguntas suportadas | "Qual o nome deste remédio?" | "Efeitos colaterais", "Posologia", "Interação medicamentosa" |
-
-### Como funciona na UI
-
-A aba **Consulta** mostra, na seção "Fontes consultadas":
-
-```
-[1] Fonte: ChatBulario-137640173-7 (CALMAN - seção 7: Efeitos adversos)
-[2] Fonte: ChatBulario-155840515-3 (OLANZAPINA - seção 3: Quando não usar)
-[3] Fonte: ChatBulario-102351448-1 (OLIRE - seção 1: Para que é indicado)
-```
-
-### Como reindexar (se precisar)
-
-```bash
-# Indexar 10k amostras (~5min, suficiente pra demo)
-python src/rag/build_index_chatbulario.py 10000
-
-# Indexar TODAS as 68k (~35min em CPU)
-python src/rag/build_index_chatbulario.py
-```
-
----
-
+**Versão**: 2.0 (React)  
+**Stack**: React 18.3.1 + Vite 5.4.10  
 **Última atualização**: 08/09/2026
-**Versão da UI**: 1.2 (com ChatBulário RAG + tradução PT-BR + tratamento de erro robusto)
-**Compatibilidade**: Gradio 4.44+, Python 3.10+

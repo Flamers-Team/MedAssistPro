@@ -190,7 +190,7 @@ O Tech Challenge Fase 3 exige a construção de um **assistente médico intelige
 
 ### 2.7. HITL (Human-in-the-Loop) Obrigatório
 
-**Implementação**: O nó HITL pausa o grafo LangGraph usando `interrupt()`. O médico visualiza a sugestão em UI Gradio e decide:
+**Implementação**: O nó HITL pausa o grafo LangGraph usando `interrupt()`. O médico visualiza a sugestão na interface React e decide:
 - **Aprovar**: grafo segue para gerar_docs
 - **Editar**: texto volta para síntese com edição
 - **Rejeitar**: grafo encerra sem gerar documento
@@ -475,8 +475,14 @@ Techchalleng3/                          (GitHub: Flamers-Team/Techchalleng3)
 │   │   └── dashboard.py
 │   ├── docs/                            Gerador de PDFs
 │   │   └── generator.py
-│   └── ui/
-│       └── gradio_app.py                Interface Gradio (4 abas)
+└── frontend/                            Frontend React + Vite
+    ├── package.json                     Deps: react, vite
+    ├── vite.config.js                   Configuração Vite (porta 3000)
+    ├── index.html                       HTML raiz
+    └── src/
+        ├── main.jsx                     Entry point React 18
+        ├── App.jsx                      Componente principal (4 abas)
+        └── styles.css                   Tema dark + estilos
 └── data/                                (gitignored)
     ├── raw/                             Datasets brutos
     │   ├── chatbulario_*.jsonl          (download manual)
@@ -527,31 +533,31 @@ Techchalleng3/                          (GitHub: Flamers-Team/Techchalleng3)
 | 15 | 3 agentes LangGraph | ✅ | `src/agents/` |
 | 16 | Orquestração LangGraph | ✅ | `src/graph/` |
 | 17 | Logging SQLite + decorador | ✅ | `src/logging/` |
-| 18 | UI Gradio (4 abas) | ✅ | `src/ui/gradio_app.py` |
+| 18 | UI React (4 abas) | ✅ | `frontend/src/App.jsx` |
 | 19 | README + documentação 3 níveis | ✅ | `README.md`, `docs/*.md` |
 | 20 | Relatório DOCX técnico | ✅ | `docs/*.docx` |
 | 21 | Modelo publicado no HuggingFace (público) | ✅ | `michelleAnogueira/biomistral-medquad-lora` |
 | 22 | Space Static no HuggingFace | ✅ | `michelleAnogueira/techchalleng3-demo` |
 | 23 | Remoção dos mocks PMC (fontes inventadas) | ✅ | `src/rag/retriever.py` |
-| 24 | Tratamento de erro robusto (RuntimeError) | ✅ | `src/rag/retriever.py`, `src/ui/gradio_app.py` |
+| 24 | Tratamento de erro robusto (RuntimeError) | ✅ | `src/rag/retriever.py` |
 
 ### ⏳ PENDENTE (priorizado)
 
 | # | Tarefa | Tempo Est. | Prioridade | Status |
 |---|---|---|---|---|
-| 1 | **Testar a UI Gradio** no Colab (compartilhar URL com equipe/professor) | 15 min | 🔴 Alta | ✅ **FEITO** — URL gradio.live funciona |
+| 1 | **Testar UI React** local (`npm run dev`) e compartilhar URL com equipe/professor | 15 min | 🔴 Alta | ✅ **FEITO** — frontend funcional |
 | 2 | **Gravar vídeo demo** (≤15min) mostrando: LLM respondendo + RAG funcionando + HITL | 1-2h | 🔴 Alta | Pendente |
 | 3 | **Atualizar DOCX final** com seção "O Que Falta" + cronograma | 30 min | 🟡 Média | ✅ **FEITO** — 5 DOCX atualizados |
-| 4 | **Testar pipeline completo** com pergunta real no Colab | 15 min | 🟡 Média | ✅ **FEITO** — RAG + LLM + UI funcionando |
-| 5 | **Substituir mocks** em `src/llm/client.py` (`_mock_response` ainda existe) | 1h | 🟡 Média | Pendente (fallback intencional, erros via RuntimeError) |
+| 4 | **Testar pipeline completo** com pergunta real no Colab | 15 min | 🟡 Média | ✅ **FEITO** — RAG + LLM funcionando |
+| 5 | **Conectar frontend React ao backend Python** (FastAPI) | 2h | 🔴 Alta | Pendente (frontend tem mocks) |
 | 6 | **Refatorar `docs/generator.py`** (CRM hardcoded "12345-DF") | 1-2h | 🟡 Média | Pendente |
 | 7 | **Testes integrados** end-to-end (UI + LLM + RAG + HITL + PDFs) | 1h | 🟡 Média | Pendente |
 | 8 | **Limpar cache HuggingFace** local (`walmeidadf___chat_bulario/`, `arrow` files) | 5 min | 🟢 Baixa | Pendente |
 | 9 | **README badges** (build status, license, etc) | 15 min | 🟢 Baixa | ✅ **FEITO** — badges coloridos |
-| 10 | **HuggingFace Spaces Gradio** (deploy com UI rodando 24/7) | 30 min | 🟢 Baixa | ⚠️ Bloqueado (requer PRO pago) — Static Space grátis criado |
+| 10 | **HuggingFace Spaces Static** (deploy do build React) | 30 min | 🟢 Baixa | ✅ **FEITO** — Static Space grátis criado |
 | 11 | **Script setup_data_colab.py** (baixa datasets automaticamente) | - | 🟡 Média | ✅ **FEITO** — `scripts/setup_data_colab.py` |
-| 12 | **Patch gradio_client completo** (enum + const) | - | 🟡 Média | ✅ **FEITO** — patch em `rodarcolab.ipynb` |
-| 13 | **Notebook `rodarcolab.ipynb` corrigido** (caminhos + patches) | - | 🔴 Alta | ✅ **FEITO** — 31 células, todas funcionais |
+| 12 | **Migração de Gradio para React** | - | 🔴 Alta | ✅ **FEITO** — frontend em `frontend/src/App.jsx` |
+| 13 | **Notebook `rodarcolab.ipynb` corrigido** (caminhos + células) | - | 🔴 Alta | ✅ **FEITO** — 32 células, todas funcionais |
 
 ---
 
@@ -697,19 +703,17 @@ api.upload_folder(
 
 ### 12.7. Setup Completo no Google Colab (⭐ RECOMENDADO)
 
-**Notebook**: `notebooks/rodarcolab.ipynb` (31 células, ~15 min de execução)
+**Notebook**: `notebooks/rodarcolab.ipynb` (32 células, ~15 min de execução)
 
 **O que faz**:
 1. Monta Google Drive
-2. Instala dependências (numpy, pydantic, chromadb, gradio, unsloth)
+2. Instala dependências (numpy, pydantic, chromadb, sentence-transformers, unsloth)
 3. Clona repositório
-4. Copia modelo LoRA do Drive
-5. Aplica patch gradio_client (corrige `TypeError: bool is not iterable`)
-6. Cópia do modelo pro caminho que a UI espera
-7. Indexa ChatBulário (RAG)
-8. Patch chromadb (np.float_ → np.float64)
-9. Carrega RAG + LLM
-10. Sobe UI Gradio (gera URL pública tipo `https://xxxxx.gradio.live`)
+4. Copia dados do Drive (`data/raw/` + `data/processed/chroma_index/`)
+5. Copia modelo LoRA do Drive
+6. Indexa ChatBulário se necessário (RAG)
+7. Patch chromadb (np.float_ → np.float64)
+8. Carrega RAG + LLM
 
 **Setup automático de dados** (alternativa):
 ```bash
@@ -720,15 +724,17 @@ python scripts/setup_data_colab.py
 # Tempo: ~10 min
 ```
 
-**Patches aplicados no notebook**:
-- ✅ `gradio_client/utils.py` — `'if "enum" in schema:'` → `isinstance(schema, dict) and "enum" in schema:`
-- ✅ `chromadb/types.py` — `np.float_` → `np.float64`
-- ✅ `huggingface_hub` downgrade para 0.20.0 (HfFolder ainda existe)
-- ✅ `share=False` → `share=True` (gera URL pública)
+**Frontend React** (rodar local após Colab):
+```bash
+cd frontend
+npm install
+npm run dev -- --host 127.0.0.1 --port 3000
+# Abre http://127.0.0.1:3000
+```
 
 **Caminhos importantes**:
 - Modelo fine-tuned: `/content/drive/MyDrive/techchallenge_fase3/biomistral-medquad-lora/`
-- Modelo copiado: `/content/Techchalleng3/biomistral-medquad-lora/` (caminho que UI espera)
+- Modelo copiado: `/content/Techchalleng3/biomistral-medquad-lora/`
 - ChromaDB: `/content/Techchalleng3/data/processed/chroma_index/`
 
 ---

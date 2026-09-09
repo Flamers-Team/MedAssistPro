@@ -37,6 +37,7 @@ Este projeto foi desenvolvido em equipe por alunos da FIAP, sem hierarquia forma
 10. [Conformidade e Boas Práticas](#10-conformidade-e-boas-práticas)
 11. [Contatos e Recursos](#11-contatos-e-recursos)
 12. [Anexo: Comandos Úteis](#12-anexo-comandos-úteis)
+13. [Deploy da LLM: Colab Pro como Serviço de Inferência (API)](#13-deploy-da-llm-colab-pro-como-serviço-de-inferência-api) ⭐ NOVO
 
 ---
 
@@ -198,7 +199,7 @@ O Tech Challenge Fase 3 exige a construção de um **assistente médico intelige
 
 ### 2.7. HITL (Human-in-the-Loop) Obrigatório
 
-**Implementação**: O nó HITL pausa o grafo LangGraph usando `interrupt()`. O médico visualiza a sugestão em UI Gradio e decide:
+**Implementação**: O nó HITL pausa o grafo LangGraph usando `interrupt()`. O médico visualiza a sugestão na interface React e decide:
 
 - **Aprovar**: grafo segue para gerar_docs
 - **Editar**: texto volta para síntese com edição
@@ -599,7 +600,7 @@ Techchalleng3/                          (GitHub: Flamers-Team/Techchalleng3)
 ├── docs/
 │   ├── RELATORIO_TECNICO_PARA_EQUIPE.md  Este documento
 │   ├── GUIA_DATASETS.md                 Instruções de download dos datasets
-│   ├── MANUAL_UI.md                     Manual da interface Gradio
+│   ├── MANUAL_UI.md                     Manual da interface React
 │   └── TECHCHALLENGE_FASE3_PROJETO_COMPLETO.docx   (~60 páginas)
 ├── notebooks/
 │   ├── 02_finetuning.ipynb              Notebook Colab Pro (A100) - 814 linhas
@@ -629,8 +630,14 @@ Techchalleng3/                          (GitHub: Flamers-Team/Techchalleng3)
 │   │   ├── audit.py
 │   │   ├── decorators.py
 │   │   └── dashboard.py
-│   └── ui/
-│       └── gradio_app.py                Interface Gradio
+└── frontend/                          Frontend React + Vite
+    ├── package.json                   Deps: react, vite
+    ├── vite.config.js                 Configuração Vite (porta 3000)
+    ├── index.html                     HTML raiz
+    └── src/
+        ├── main.jsx                   Entry point React 18
+        ├── App.jsx                    Componente principal (4 abas)
+        └── styles.css                 Tema dark + estilos
 └── data/                                (gitignored - não versionado)
     ├── raw/                             Datasets brutos
     └── processed/                       Datasets anonimizados + ChromaDB
@@ -650,6 +657,8 @@ Techchalleng3/                          (GitHub: Flamers-Team/Techchalleng3)
 | **Orquestração** | LangChain + LangGraph | 0.3.0 / 0.2.19 |
 | **Auditoria** | SQLite + Loguru | Python 3.11 |
 | **GPU alvo** | NVIDIA A100 (40GB) Colab Pro | — |
+| **Frontend** | React + Vite | 18.3.1 / 5.4.10 |
+| **Bundler** | Vite (dev server + build) | 5.4.10 |
 
 ---
 
@@ -677,18 +686,18 @@ Techchalleng3/                          (GitHub: Flamers-Team/Techchalleng3)
 | 16 | 3 agentes LangGraph | ✅ | `src/agents/` |
 | 17 | Orquestração LangGraph | ✅ | `src/graph/` |
 | 18 | Logging SQLite + decorador | ✅ | `src/logging/` |
-| 19 | UI Gradio (4 abas) | ✅ | `src/ui/gradio_app.py` |
+| 19 | UI React (4 abas) | ✅ | `frontend/src/App.jsx` |
 | 20 | README + documentação | ✅ | `README.md`, `docs/` |
 | 21 | Relatório DOCX técnico | ✅ | `docs/*.docx` |
 | 22 | DOCX atualizado para equipe | ✅ | `RELATORIO_TECNICO_EQUIPE_FINAL.docx` |
 | 23 | Substituição ANVISA → ChatBulário (10k bulas PT-BR) | ✅ | `src/rag/build_index_chatbulario.py` |
 | 24 | Remoção dos mocks PMC (fontes inventadas) | ✅ | `src/rag/retriever.py` |
-| 25 | Tratamento de erro robusto (RuntimeError) | ✅ | `src/rag/retriever.py`, `src/ui/gradio_app.py` |
+| 25 | Tratamento de erro robusto (RuntimeError) | ✅ | `src/rag/retriever.py` |
 | 26 | Modelo publicado no HuggingFace (público) | ✅ | `michelleAnogueira/biomistral-medquad-lora` |
 | 27 | Space Static no HuggingFace | ✅ | `michelleAnogueira/techchalleng3-demo` |
 | 28 | Script setup_data_colab.py (baixa dados automaticamente) | ✅ | `scripts/setup_data_colab.py` |
 | 29 | Notebook `rodarcolab.ipynb` corrigido (patches + caminhos) | ✅ | `notebooks/rodarcolab.ipynb` |
-| 30 | UI testada no Colab (URL gradio.live funciona) | ✅ | `notebooks/rodarcolab.ipynb` |
+| 30 | UI React migrada de Gradio | ✅ | `frontend/src/App.jsx` |
 
 ### ⏳ PENDENTE
 
@@ -827,19 +836,17 @@ dashboard_resumo(horas=24)
 
 ### 12.6. Setup Completo no Google Colab (⭐ RECOMENDADO)
 
-**Notebook**: `notebooks/rodarcolab.ipynb` (31 células, ~15 min de execução)
+**Notebook**: `notebooks/rodarcolab.ipynb` (32 células, ~15 min de execução)
 
 **O que faz**:
 1. Monta Google Drive
-2. Instala dependências (numpy, pydantic, chromadb, gradio, unsloth)
+2. Instala dependências (numpy, pydantic, chromadb, sentence-transformers, unsloth)
 3. Clona repositório
-4. Copia modelo LoRA do Drive
-5. Aplica patch gradio_client (corrige `TypeError: bool is not iterable`)
-6. Cópia do modelo pro caminho que a UI espera
-7. Indexa ChatBulário (RAG)
-8. Patch chromadb (np.float_ → np.float64)
-9. Carrega RAG + LLM
-10. Sobe UI Gradio (gera URL pública tipo `https://xxxxx.gradio.live`)
+4. Copia dados do Drive (`data/raw/` + `data/processed/chroma_index/`)
+5. Copia modelo LoRA do Drive
+6. Indexa ChatBulário se necessário (RAG)
+7. Patch chromadb (np.float_ → np.float64)
+8. Carrega RAG + LLM
 
 **Setup automático de dados** (alternativa):
 ```bash
@@ -850,19 +857,134 @@ python scripts/setup_data_colab.py
 # Tempo: ~10 min
 ```
 
-**Patches aplicados no notebook**:
-- ✅ `gradio_client/utils.py` — `'if "enum" in schema:'` → `isinstance(schema, dict) and "enum" in schema:`
-- ✅ `chromadb/types.py` — `np.float_` → `np.float64`
-- ✅ `huggingface_hub` downgrade para 0.20.0 (HfFolder ainda existe)
-- ✅ `share=False` → `share=True` (gera URL pública)
+**Frontend React** (rodar local após Colab):
+```bash
+cd frontend
+npm install
+npm run dev -- --host 127.0.0.1 --port 3000
+# Abre http://127.0.0.1:3000
+```
 
 **Caminhos importantes**:
 - Modelo fine-tuned: `/content/drive/MyDrive/techchallenge_fase3/biomistral-medquad-lora/`
-- Modelo copiado: `/content/Techchalleng3/biomistral-medquad-lora/` (caminho que UI espera)
+- Modelo copiado: `/content/Techchalleng3/biomistral-medquad-lora/`
 - ChromaDB: `/content/Techchalleng3/data/processed/chroma_index/`
 
 ---
 
-**Relatório gerado em**: 08/09/2026
-**Versão do projeto**: 2.2 (com RAG completo 25k docs + sem mocks)
+## 13. Deploy da LLM: Colab Pro como Serviço de Inferência (API) ⭐ NOVO
+
+Esta seção documenta como expor a LLM fine-tunada (que precisa de GPU) para as demais partes do projeto — o backend Python (RAG + agentes + auditoria) e o frontend React — quando não há GPU local disponível.
+
+### 13.1. Limitações do Google Colab (Pro incluso)
+
+O Colab Pro melhora a GPU (T4 / L4 / A100) e a estabilidade da sessão, mas **não muda a mecânica de rede**:
+
+- **Não abre porta pública**: não é possível apontar o navegador/backend para `IP_do_Colab:8000`. É preciso um **túnel** (Cloudflare, ngrok, ou o `share` do Gradio) para gerar uma URL HTTPS externa.
+- **Sessão efêmera**: cai por inatividade (~90 min) e tem limite total (~12–24 h). Quando a sessão morre, a API morre junto.
+- **Não existe "endpoint oficial de API do Colab"**: o padrão é sempre subir um servidor HTTP *dentro* do notebook e expô-lo por túnel.
+
+### 13.2. Opções avaliadas
+
+| # | Abordagem | Como funciona | Prós | Contras |
+|---|---|---|---|---|
+| 1 | **Gradio como API** | `demo.launch(share=True)` gera `xxx.gradio.live`. Cada evento vira endpoint; o backend chama via `gradio_client.Client(url).predict(...)` | Zero infra nova (já implementado) | Túnel `gradio.live` expira em 72 h, instável, schema "gradio-shaped" |
+| 2 | **FastAPI + Cloudflare Tunnel** | `uvicorn` em `127.0.0.1:8000` numa thread + `cloudflared tunnel --url http://localhost:8000` gera `https://xxx.trycloudflare.com` | REST próprio, grátis, sem cadastro | URL muda a cada sessão (repassar ao backend) |
+| 3 | **FastAPI + ngrok** | Igual, com `pyngrok` e authtoken | Fácil | Free: 1 túnel, tela de aviso, authtoken obrigatório |
+| 4 | **Cloudflare Tunnel nomeado** | Conta Cloudflare grátis + domínio → subdomínio fixo (`llm.dominio.com`) | URL estável entre sessões | Requer domínio próprio na Cloudflare |
+| 5 | **Sair do Colab** | HF Inference Endpoints / Modal / RunPod / Replicate (pagos) ou **Kaggle Notebooks** (GPU grátis, 30 h/semana, mesmo truque de túnel, costuma cair menos) | URL estável, não morre | Custo, ou setup adicional |
+
+### 13.3. Arquitetura recomendada — "LLM como microserviço"
+
+Só a **inferência** roda no Colab; o resto (RAG, agentes, `audit.db`, geração de PDF) roda localmente:
+
+```
+React (laptop)  ->  Backend FastAPI (local: RAG + agentes + auditoria + PDFs)
+                                  |  apenas o llm.invoke()
+                                  v
+                    Colab Pro (GPU): FastAPI /invoke  --cloudflared-->  https://xxx.trycloudflare.com
+```
+
+Vantagens: componentes leves ficam locais e rápidos; só o texto (prompt/resposta) trafega pela rede; o mesmo `src/llm/client.py` atende três modos — local, remoto e mock.
+
+### 13.4. Implementação no `rodarcolab.ipynb`
+
+> **Status**: proposta — ainda não commitada. As células abaixo são o que deve ser adicionado ao notebook.
+
+Célula A — após carregar o objeto `llm` (`LLMClient`), sobe a API numa thread:
+
+```python
+from fastapi import FastAPI
+from pydantic import BaseModel
+import uvicorn, threading, nest_asyncio
+
+api = FastAPI()
+
+class Req(BaseModel):
+    messages: list
+
+@api.get("/health")
+def health():
+    return {"ok": True, "mock": llm.use_mock}
+
+@api.post("/invoke")
+def invoke(r: Req):
+    return {"text": llm.invoke(r.messages)}
+
+nest_asyncio.apply()
+threading.Thread(
+    target=lambda: uvicorn.run(api, host="127.0.0.1", port=8000),
+    daemon=True,
+).start()
+```
+
+Célula B — cria o túnel público e imprime a URL:
+
+```python
+!wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -O /usr/local/bin/cloudflared && chmod +x /usr/local/bin/cloudflared
+import subprocess, re
+p = subprocess.Popen(
+    ["cloudflared", "tunnel", "--url", "http://localhost:8000"],
+    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+)
+for line in p.stdout:
+    print(line, end="")
+    m = re.search(r"https://[-\w]+\.trycloudflare\.com", line)
+    if m:
+        print("\n>>> API PÚBLICA:", m.group(0))
+        break
+```
+
+### 13.5. Modo `remote` no `src/llm/client.py`
+
+> **Status**: proposta — ainda não commitada.
+
+Comportamento previsto: se a variável de ambiente `LLM_REMOTE_URL` estiver definida, o `LLMClient` **não carrega o modelo** — `invoke()` faz `requests.post(f"{LLM_REMOTE_URL}/invoke", json={"messages": messages})` e devolve o campo `text`.
+
+Assim o backend local roda normalmente, apenas definindo:
+
+```bash
+set LLM_REMOTE_URL=https://xxx.trycloudflare.com   # Windows (PowerShell: $env:LLM_REMOTE_URL="...")
+export LLM_REMOTE_URL=https://xxx.trycloudflare.com # Linux/Mac
+```
+
+Resumo dos modos do `LLMClient`:
+
+| Modo | Ativação | Uso |
+|---|---|---|
+| Local | default (com GPU) | Notebook Colab ou máquina com GPU |
+| Remoto | `LLM_REMOTE_URL` definida | Backend/CI local consumindo o Colab |
+| Mock | `LLM_MOCK=1` | Testar pipeline/UI sem GPU (respostas stub) |
+
+### 13.6. Dicas de operação no Colab
+
+- **Keep-alive**: sem interação a sessão cai em ~90 min. Manter uma célula com `while True: time.sleep(60)` rodando, ou o backend pingando `/health` a cada minuto.
+- **URL rotativa**: automatizar — a célula do túnel pode gravar a URL num arquivo no Drive, e o backend lê de lá no startup.
+- **CORS**: se o React chamar o Colab diretamente, adicionar `CORSMiddleware(allow_origins=["*"])` na `api` FastAPI.
+- **VRAM**: BioMistral-7B em 4-bit cabe em qualquer GPU do Colab (T4 de 16 GB inclusive); os tradutores MarianMT somam ~600 MB.
+
+---
+
+**Relatório gerado em**: 09/09/2026
+**Versão do projeto**: 2.3 (frontend React + deploy da LLM via API no Colab)
 **Próxima atualização**: após deploy/demo
