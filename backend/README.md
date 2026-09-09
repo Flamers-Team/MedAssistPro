@@ -38,3 +38,13 @@ Sem `LLM_MOCK=1` no ambiente, a API tenta carregar o BioMistral-7B + adapter LoR
 cd backend
 python validate_backend.py
 ```
+
+## Testes unitários
+
+```bash
+cd backend
+pip install -r requirements-dev.txt
+python -m pytest tests/ -v
+```
+
+Os testes rodam em `LLM_MOCK=1` (definido automaticamente em `tests/conftest.py`), então não precisam de GPU nem baixam modelos.

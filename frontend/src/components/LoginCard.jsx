@@ -14,11 +14,11 @@ export default function LoginCard({
         <h1>Assistente Médico Inteligente</h1>
         <p>Login do médico</p>
 
-        <label>Usuário</label>
-        <input value={username} onChange={onUsernameChange} />
+        <label htmlFor="login-username">Usuário</label>
+        <input id="login-username" value={username} onChange={onUsernameChange} />
 
-        <label>Senha</label>
-        <input type="password" value={password} onChange={onPasswordChange} />
+        <label htmlFor="login-password">Senha</label>
+        <input id="login-password" type="password" value={password} onChange={onPasswordChange} />
 
         <button className="primary full" onClick={onSubmit} disabled={disabled || loading}>
           {loading ? 'Entrando...' : 'Entrar'}
