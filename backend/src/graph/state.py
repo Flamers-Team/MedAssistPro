@@ -6,6 +6,8 @@ class ConversationState(TypedDict):
     """Estado que flui entre os 6 nós do LangGraph."""
     relato_inicial: str
     dados_paciente: Optional[dict]
+    paciente_id: Optional[str]
+    historico_paciente: Optional[dict]
     triagem: Optional[dict]
     sintese: Optional[dict]
     validacao: Optional[dict]

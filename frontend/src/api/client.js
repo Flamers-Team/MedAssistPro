@@ -30,6 +30,12 @@ export const processConsultation = (relato) =>
     }),
   });
 
+export const decidirConsulta = (sessionId, decisao, textoEditado) =>
+  requestJson(`/api/consulta/${sessionId}/decisao`, {
+    method: 'POST',
+    body: JSON.stringify({ decisao, texto_editado: textoEditado || null }),
+  });
+
 export const fetchAudit = () => requestJson('/api/auditoria');
 export const fetchDocuments = () => requestJson('/api/documentos');
 export const getDownloadUrl = (path) => `${API_URL}/api/download?path=${encodeURIComponent(path)}`;

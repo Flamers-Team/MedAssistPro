@@ -35,27 +35,113 @@ def test_consulta_rejeita_relato_em_branco(client):
     assert resp.status_code == 400
 
 
-def test_consulta_retorna_estrutura_completa(client):
-    resp = client.post(
-        "/api/consulta",
-        json={
-            "relato": "Paciente relata febre e tosse ha 3 dias, sem dispneia.",
-            "paciente": {"nome": "Teste", "idade": "30", "sexo": "M"},
-            "medico": {"nome": "Dr Teste", "crm": "11111"},
-        },
-    )
+def _iniciar_consulta(client, **overrides):
+    payload = {
+        "relato": "Paciente relata febre e tosse ha 3 dias, sem dispneia.",
+        "paciente": {"nome": "Teste", "idade": "30", "sexo": "M"},
+        "medico": {"nome": "Dr Teste", "crm": "11111"},
+    }
+    payload.update(overrides)
+    return client.post("/api/consulta", json=payload)
+
+
+def test_consulta_fica_aguardando_validacao_e_nao_gera_documento(client):
+    resp = _iniciar_consulta(client)
     assert resp.status_code == 200
     body = resp.json()
-    assert body["status"] in ("ok", "partial")
+    assert body["status"] == "aguardando_validacao"
     assert "session_id" in body
     assert "triagem" in body and "categoria" in body["triagem"]
     assert "sintese" in body
+    assert body["documento"] is None
+    assert body["hash_documento"] is None
     assert body["auth_valid"] is True
+
+
+def test_consulta_com_paciente_id_roda_o_grafo_completo(client):
+    resp = _iniciar_consulta(
+        client,
+        relato="Retorno para reavaliar dor toracica ao esforco.",
+        paciente_id="PAC-0002",
+        paciente={"nome": "Carlos Eduardo Lima", "idade": "61", "sexo": "M"},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["status"] == "aguardando_validacao"
+    assert "triagem" in body
+    assert "sintese" in body
 
 
 def test_consulta_usa_dados_default_quando_paciente_e_medico_omitidos(client):
     resp = client.post("/api/consulta", json={"relato": "Relato sem paciente nem medico informados."})
     assert resp.status_code == 200
+    assert resp.json()["status"] == "aguardando_validacao"
+
+
+def test_decisao_aprovado_gera_documento(client):
+    session_id = _iniciar_consulta(client).json()["session_id"]
+
+    resp = client.post(f"/api/consulta/{session_id}/decisao", json={"decisao": "aprovado"})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["status"] in ("ok", "partial")
+    assert body["documento"] is not None
+    assert body["hash_documento"] is not None
+
+
+def test_decisao_rejeitado_nao_gera_documento(client):
+    session_id = _iniciar_consulta(client).json()["session_id"]
+
+    resp = client.post(f"/api/consulta/{session_id}/decisao", json={"decisao": "rejeitado"})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["status"] == "rejeitado"
+    assert body["documento"] is None
+    assert body["hash_documento"] is None
+
+
+def test_decisao_editado_usa_texto_editado(client):
+    session_id = _iniciar_consulta(client).json()["session_id"]
+
+    resp = client.post(
+        f"/api/consulta/{session_id}/decisao",
+        json={"decisao": "editado", "texto_editado": "Texto revisado pelo medico."},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["status"] in ("ok", "partial")
+    assert body["documento"] is not None
+
+
+def test_decisao_com_sessao_inexistente_retorna_404(client):
+    resp = client.post("/api/consulta/sessao-que-nao-existe/decisao", json={"decisao": "aprovado"})
+    assert resp.status_code == 404
+
+
+def test_decisao_duplicada_retorna_409(client):
+    session_id = _iniciar_consulta(client).json()["session_id"]
+    client.post(f"/api/consulta/{session_id}/decisao", json={"decisao": "aprovado"})
+
+    resp = client.post(f"/api/consulta/{session_id}/decisao", json={"decisao": "aprovado"})
+    assert resp.status_code == 409
+
+
+def test_decisao_rejeita_valor_invalido(client):
+    session_id = _iniciar_consulta(client).json()["session_id"]
+
+    resp = client.post(f"/api/consulta/{session_id}/decisao", json={"decisao": "talvez"})
+    assert resp.status_code == 422
+
+
+def test_fluxo_completo_gera_um_evento_de_auditoria_por_etapa(client):
+    session_id = _iniciar_consulta(client).json()["session_id"]
+    client.post(f"/api/consulta/{session_id}/decisao", json={"decisao": "aprovado"})
+
+    eventos = client.get("/api/auditoria").json()["events"]
+    tipos = {e["event_type"] for e in eventos if e["session_id"] == session_id}
+
+    esperado = {"triagem", "contexto_paciente", "retrieval", "sintese", "validacao", "hitl_decisao", "documento_gerado"}
+    assert esperado.issubset(tipos)
 
 
 def test_auditoria_retorna_lista(client):

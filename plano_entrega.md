@@ -1,8 +1,8 @@
 # Plano de entrega — Tech Challenge Fase 3
 
-Somente o que o enunciado exige. O percentual indica quanto do item já está pronto no `main` em 11/09/2026 (commit `e36cb1a`). Cada passo traz, marcado como (bloqueante), o motivo pelo qual bloqueia a entrega, seguido da citação do enunciado que sustenta isso.
+Somente o que o enunciado exige. O percentual indica quanto do item já está pronto no `main` em 11/09/2026. Cada passo traz, marcado como (bloqueante), o motivo pelo qual bloqueia a entrega, seguido da citação do enunciado que sustenta isso.
 
-**Progresso geral estimado: 58%**
+**Progresso geral estimado: 84%** (seções 2 e 3 concluídas — pipeline LangChain, consulta estruturada por paciente, HITL real via interrupt/checkpointer e logging por etapa)
 
 **Como ler as citações:** referem-se ao enunciado oficial, [8IADT - Fase 3 - Tech challenge.pdf](8IADT%20-%20Fase%203%20-%20Tech%20challenge.pdf), versionado na raiz do repositório. A linha é contada de cima para baixo, sem contar o cabeçalho "Tech Challenge Página X de 5". Na página 4, cada linha visual da tabela de datasets conta como uma linha.
 
@@ -41,69 +41,33 @@ Somente o que o enunciado exige. O percentual indica quanto do item já está pr
 
 ## 2. Assistente médico com LangChain
 
-* Pipeline LangChain integrando a LLM customizada (40%)
-   * A LLM é chamada por um cliente próprio, fora do LangChain. O grafo LangGraph existe, mas a API chama os nós um a um em vez de executá-lo.
+* Pipeline LangChain integrando a LLM customizada (100%)
+   * Feito. `BioMistralChatModel` (`backend/src/llm/langchain_client.py`) encapsula o `LLMClient` como chat model do `langchain-core` (`BaseChatModel`). A API (`backend/src/api/app.py`) monta o grafo com `criar_workflow(get_langchain_llm(), ...)` e chama `grafo.invoke(state)` — o LangGraph roda de ponta a ponta numa única chamada, em vez de a API chamar os nós um a um. `triar()`/`sintetizar()` usam a interface do langchain-core (`SystemMessage`/`HumanMessage`) quando recebem esse client.
       > (pág 3, linhas 2-3) "Utilizar o LangChain para: Construir um pipeline que integre a LLM customizada;"
-      >
-      > (pág 2, linhas 13 e 17) "a ideia é organizar fluxos de decisão automatizados e seguros [...] tudo isso coordenado com LangChain."
-   * Encapsular o `LLMClient` como um LLM do `langchain-core`.
-      > (bloqueante) Hoje a LLM customizada é chamada fora do LangChain, então não existe pipeline LangChain que a integre.
-      >
-      > (pág 3, linhas 2-3) "Utilizar o LangChain para: Construir um pipeline que integre a LLM customizada;"
-   * Fazer a API executar o grafo compilado por `criar_workflow` em vez de chamar os nós um a um.
-      > (bloqueante) Sem isso, o fluxo do LangGraph nunca roda e não há fluxo automatizado para demonstrar.
       >
       > (pág 3, linhas 19 e 22) "Código-fonte com: [...] Fluxos do LangGraph."
       >
       > (pág 4, linha 14) "Execução de um fluxo automatizado;"
-* Consultas em base de dados estruturada, como prontuários e registros (0%)
-   * Não existe base de pacientes. O RAG consulta bulas, CID-10 e notas genéricas por busca semântica, que não é consulta estruturada nem registro do paciente em atendimento.
+* Consultas em base de dados estruturada, como prontuários e registros (100%)
+   * Feito. Base SQLite sintética de prontuários (`backend/src/data/prontuarios.py`, `ProntuarioStore`, 4 pacientes sintéticos com histórico/alergias/condições crônicas) consultada por uma tool do langchain-core (`backend/src/graph/tools.py`, `consultar_prontuario`).
       > (pág 3, linhas 2 e 4-5) "Utilizar o LangChain para: [...] Realizar consultas em base de dados estruturadas (como prontuários e registros);"
-   * Criar uma base de dados estruturada de prontuários, com dados sintéticos ou anonimizados.
-      > (bloqueante) Não existe base estruturada para ser consultada.
-      >
-      > (pág 3, linhas 4-5) "Realizar consultas em base de dados estruturadas (como prontuários e registros);"
       >
       > (pág 3, linha 23) "Dataset anonimizado ou exemplo de dados sintéticos;"
-   * Criar uma tool do LangChain que consulta essa base por paciente.
-      > (bloqueante) O enunciado pede que as consultas sejam feitas com o LangChain.
-      >
-      > (pág 3, linhas 2 e 4-5) "Utilizar o LangChain para: [...] Realizar consultas em base de dados estruturadas (como prontuários e registros);"
-* Contextualizar as respostas com informações atualizadas do paciente (10%)
-   * Hoje os dados do paciente só vão para o PDF e nunca chegam ao modelo. A consulta também não identifica o paciente, então não há registro a buscar.
+* Contextualizar as respostas com informações atualizadas do paciente (100%)
+   * Feito. Novo nó `node_contexto_paciente` (`backend/src/graph/nodes.py`) roda logo após a triagem, chama a tool acima e grava `historico_paciente` no estado; `node_sintese` passa esse histórico pra `sintetizar()`, que o injeta no prompt da LLM (`_formatar_historico`). A API recebe `paciente_id` no payload de `/api/consulta` e propaga pro estado inicial do grafo.
       > (pág 3, linhas 2 e 6-7) "Utilizar o LangChain para: [...] Contextualizar as respostas da LLM com informações atualizadas do paciente."
-   * Criar nó no grafo que consulta o prontuário do paciente pela tool e injeta o histórico no prompt da LLM.
-      > (bloqueante) Sem ele, as informações do paciente não chegam à LLM.
-      >
-      > (pág 3, linhas 6-7) "Contextualizar as respostas da LLM com informações atualizadas do paciente."
-   * Fazer a API receber o identificador do paciente na consulta.
-      > (bloqueante) Sem identificar o paciente, não há prontuário a consultar e a resposta não fica contextualizada.
-      >
-      > (pág 3, linhas 6-7) "Contextualizar as respostas da LLM com informações atualizadas do paciente."
       >
       > (pág 4, linha 15) "Resposta a perguntas clínicas contextualizadas;"
 
 ## 3. Segurança e validação
 
-* Limites de atuação: nunca prescrever sem validação humana (50%)
-   * Prompts e marcação de medicações já existem. A validação humana foi perdida na migração para a API, que aprova sozinha e já gera o PDF.
+* Limites de atuação: nunca prescrever sem validação humana (100%)
+   * Feito. A consulta agora é dividida em duas etapas de verdade, usando `interrupt()`/checkpointer do LangGraph (não é mais um `medico_decisao` hardcoded): `POST /api/consulta` roda o grafo até o nó `hitl`, que pausa a execução — devolve `status: "aguardando_validacao"` e **nenhum documento**. Só `POST /api/consulta/{session_id}/decisao` (aprovar/editar/rejeitar) retoma o grafo; o documento só é gerado se a decisão for "aprovado" ou "editado" (`node_gerar_docs` em `backend/src/graph/nodes.py`). O estado pausado sobrevive entre as duas chamadas HTTP via checkpointer SQLite (`backend/src/graph/workflow.py`, `data/processed/checkpoints.db`). UI de aprovar/editar/rejeitar adicionada em `frontend/src/components/ConsultaPanel.jsx`.
       > (pág 3, linhas 9-10) "Definir limites de atuação do assistente para evitar sugestões impróprias (ex.: nunca prescrever diretamente, sem validação humana);"
-   * Dividir a consulta em duas etapas. A primeira devolve só a sugestão, sem gerar documento.
-      > (bloqueante) Hoje o documento é gerado sem validação humana.
-      >
-      > (pág 3, linhas 9-10) "nunca prescrever diretamente, sem validação humana"
-   * Criar rota de decisão do médico: aprovar, editar ou rejeitar. O documento só é gerado após aprovar ou editar.
-      > (bloqueante) Sem ela, o médico não tem como validar a resposta antes da emissão do documento.
-      >
-      > (pág 3, linhas 9-10) "nunca prescrever diretamente, sem validação humana"
       >
       > (pág 4, linha 16) "Logs e validação das respostas."
-* Logging detalhado para rastreamento e auditoria (50%)
-   * Hoje a API grava um único evento por consulta, sem detalhe por etapa.
-      > (pág 3, linha 11) "Implementar logging detalhado para rastreamento e auditoria;"
-   * Registrar um evento por etapa: triagem, retrieval com as fontes, consulta ao prontuário, síntese, validação, decisão do médico e documento gerado.
-      > (bloqueante) Com um único evento por consulta, não dá para rastrear o que cada etapa fez.
-      >
+* Logging detalhado para rastreamento e auditoria (100%)
+   * Feito. `POST /api/consulta` e `POST /api/consulta/{session_id}/decisao` rodam o grafo via `.stream(..., stream_mode="updates")` e gravam um evento de auditoria por etapa concluída (`_log_etapa` em `backend/src/api/app.py`, usando os dataclasses tipados já existentes em `backend/src/logging/schemas.py`): `triagem`, `contexto_paciente`, `retrieval` (com as fontes), `sintese`, `validacao`, `hitl_decisao` (a decisão do médico) e `documento_gerado`.
       > (pág 3, linha 11) "Implementar logging detalhado para rastreamento e auditoria;"
       >
       > (pág 4, linha 16) "Logs e validação das respostas."
@@ -129,11 +93,11 @@ Somente o que o enunciado exige. O percentual indica quanto do item já está pr
 * Repositório: pipeline de fine-tuning (100%)
    * Pronto. `notebooks/02_finetuning.ipynb` com QLoRA sobre o BioMistral-7B.
       > (pág 3, linhas 18-20) "Repositório Git: Código-fonte com: Pipeline de fine-tuning;"
-* Repositório: integração com LangChain (40%)
-   * Coberto pelos passos da seção 2.
+* Repositório: integração com LangChain (100%)
+   * Coberto pelos passos da seção 2 — feito.
       > (pág 3, linhas 19 e 21) "Código-fonte com: [...] Integração com LangChain;"
-* Repositório: fluxos do LangGraph (30%)
-   * O grafo existe, mas nunca é executado. Coberto pelo passo da seção 2 que faz a API executar o grafo.
+* Repositório: fluxos do LangGraph (100%)
+   * Feito. A API executa o grafo compilado (`criar_workflow(...).invoke(state)`) de ponta a ponta.
       > (pág 3, linhas 19 e 22) "Código-fonte com: [...] Fluxos do LangGraph."
 * Dataset anonimizado ou exemplo de dados sintéticos (100%)
    * Pronto. As notas clínicas sintéticas estão versionadas em `data/raw/synthetic_clinical_notes`. O enunciado aceita anonimizado ou sintético.

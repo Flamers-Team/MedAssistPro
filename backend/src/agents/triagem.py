@@ -5,6 +5,11 @@ Usa LLM real (BioMistral fine-tuned) se disponível, senão mock.
 
 import json
 import re
+from typing import Optional
+
+from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_core.messages import HumanMessage, SystemMessage
+
 from src.llm.client import get_llm
 
 
@@ -29,16 +34,27 @@ RESPONDA EM JSON ESTRITO:
 ⚠️ NÃO prescreva nada. NÃO dê diagnóstico. Apenas CLASSIFIQUE a urgência."""
 
 
-def triar(relato: str) -> dict:
-    """Classifica urgência usando LLM real ou fallback."""
-    llm = get_llm()
+def triar(relato: str, llm_client: Optional[object] = None) -> dict:
+    """Classifica urgência usando LLM real ou fallback.
 
-    messages = [
-        {"role": "system", "content": TRIAGEM_SYSTEM_PROMPT},
-        {"role": "user", "content": f"Relato: {relato}"},
-    ]
-
-    text = llm.invoke(messages)
+    Se `llm_client` for um chat model do langchain-core (usado quando o grafo
+    LangGraph é executado via `criar_workflow`), a chamada é feita pela
+    interface do langchain-core. Caso contrário, usa o LLMClient direto
+    (get_llm()) — mesmo comportamento de sempre.
+    """
+    if isinstance(llm_client, BaseChatModel):
+        resposta = llm_client.invoke([
+            SystemMessage(content=TRIAGEM_SYSTEM_PROMPT),
+            HumanMessage(content=f"Relato: {relato}"),
+        ])
+        text = resposta.content
+    else:
+        llm = llm_client or get_llm()
+        messages = [
+            {"role": "system", "content": TRIAGEM_SYSTEM_PROMPT},
+            {"role": "user", "content": f"Relato: {relato}"},
+        ]
+        text = llm.invoke(messages)
 
     # Parse JSON (try/except com fallback)
     try:

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { fetchAudit, fetchDocuments, getDownloadUrl, loginUser, processConsultation } from './api/client';
+import { decidirConsulta, fetchAudit, fetchDocuments, getDownloadUrl, loginUser, processConsultation } from './api/client';
 import AuditPanel from './components/AuditPanel';
 import ConfigPanel from './components/ConfigPanel';
 import ConsultaPanel from './components/ConsultaPanel';
@@ -8,6 +8,8 @@ import LoginCard from './components/LoginCard';
 import MainLayout from './components/MainLayout';
 
 const initialResult = {
+  sessionId: null,
+  status: null,
   triagem: {
     categoria: '—',
     justificativa: 'Aguardando consulta.',
@@ -23,6 +25,16 @@ const initialResult = {
   documento: null,
   downloadUrl: '',
 };
+
+function buildSintese(data) {
+  return {
+    resumo: data.sintese?.observacoes || data.sintese?.disclaimer || 'Consulta concluída com sucesso.',
+    exames: (data.sintese?.exames_sugeridos || []).map((item) => item.nome || item),
+    medicamentos: (data.sintese?.medicacoes_sugeridas || []).map((item) => item.nome || item),
+    observacoes: data.sintese?.observacoes || '',
+    disclaimer: data.sintese?.disclaimer || '',
+  };
+}
 
 function App() {
   const [loggedIn, setLoggedIn] = useState(false);
@@ -94,26 +106,47 @@ function App() {
       setError('');
       const data = await processConsultation(relato);
 
-      const nextDocument = data.documento || null;
       setResult({
+        sessionId: data.session_id,
+        status: data.status,
         triagem: data.triagem || initialResult.triagem,
         rag: (data.rag || []).map((item) => item.content || item),
-        sintese: {
-          resumo: data.sintese?.observacoes || data.sintese?.disclaimer || 'Consulta concluída com sucesso.',
-          exames: (data.sintese?.exames_sugeridos || []).map((item) => item.nome || item),
-          medicamentos: (data.sintese?.medicacoes_sugeridas || []).map((item) => item.nome || item),
-          observacoes: data.sintese?.observacoes || '',
-          disclaimer: data.sintese?.disclaimer || '',
-        },
-        documento: nextDocument,
-        downloadUrl: nextDocument ? getDownloadUrl(nextDocument) : '',
+        sintese: buildSintese(data),
+        documento: null,
+        downloadUrl: '',
       });
 
       await loadAudit();
-      await loadDocuments();
       setTab('consulta');
     } catch (err) {
       setError(err.message || 'Erro ao iniciar consulta');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDecisao = async (decisao, textoEditado) => {
+    if (!result.sessionId) {
+      return;
+    }
+    try {
+      setLoading(true);
+      setError('');
+      const data = await decidirConsulta(result.sessionId, decisao, textoEditado);
+
+      const nextDocument = data.documento || null;
+      setResult((prev) => ({
+        ...prev,
+        status: data.status,
+        sintese: buildSintese(data),
+        documento: nextDocument,
+        downloadUrl: nextDocument ? getDownloadUrl(nextDocument) : '',
+      }));
+
+      await loadAudit();
+      await loadDocuments();
+    } catch (err) {
+      setError(err.message || 'Erro ao registrar decisão');
     } finally {
       setLoading(false);
     }
@@ -128,6 +161,7 @@ function App() {
         error={error}
         onProcess={handleProcess}
         onClear={() => setRelato('')}
+        onDecidir={handleDecisao}
         result={result}
       />
     ),

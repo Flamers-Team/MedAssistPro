@@ -57,6 +57,8 @@ data/audit/
 audit.db
 audit.db-journal
 *.db
+*.db-shm
+*.db-wal
 *.sqlite
 *.sqlite3
 
