@@ -189,21 +189,38 @@ O Tech Challenge Fase 3 exige a construção de um **assistente médico intelige
 | **Síntese** | 0.7 (criativo) | Cruzar relato + RAG → hipóteses diagnósticas + exames + medicações | JSON estruturado com citações |
 | **Validação** | 0.2 (conservador) | Aplicar guardrails, adicionar disclaimers, citar fontes | JSON validado pronto pro HITL |
 
-**Fluxo LangGraph (6 nós)**:
+**Fluxo LangGraph (7 nós)**:
 
+```mermaid
+flowchart TD
+    subgraph FASE1["Fase 1 — POST /api/consulta"]
+        A["Relato do paciente<br/>+ paciente_id (opcional)"] --> B["Triagem<br/>(classifica urgência)"]
+        B --> C["Contexto do paciente<br/>(tool LangChain → prontuário SQLite)"]
+        C --> D["Retrieval<br/>(RAG interno: ChatBulário + CID-10 + Synthetic)"]
+        D --> E["Síntese<br/>(hipóteses + exames + medicações)"]
+        E --> F["Validação<br/>(guardrails + disclaimer)"]
+        F --> G["HITL<br/>interrupt() — PAUSA aqui"]
+    end
+
+    G -.->|"status: aguardando_validacao<br/>(nenhum documento gerado)"| MEDICO["Médico revisa a sugestão<br/>na interface React"]
+    MEDICO -->|"POST /api/consulta/session_id/decisao"| RESUME{"Decisão do médico"}
+
+    subgraph FASE2["Fase 2 — grafo retomado (Command resume)"]
+        RESUME -->|"aprovado / editado"| DOC["Gerar documento PDF<br/>+ hash SHA-256"]
+        RESUME -->|"rejeitado"| FIM1["Fim — nenhum documento gerado"]
+    end
+    DOC --> FIM2["Fim — documento disponível para download"]
 ```
-[Relato] → Triagem → Retrieval (RAG PMC + RAG interno) → Síntese → Validação → HITL → Gerar Docs PDF
-                                                                                    ↑
-                                                                        Médico SEMPRE ratifica
-```
+
+O estado do grafo entre as duas fases é persistido por um checkpointer SQLite do LangGraph (`data/processed/checkpoints.db`), então a pausa sobrevive entre requisições HTTP diferentes — não é um `if` em memória.
 
 ### 2.7. HITL (Human-in-the-Loop) Obrigatório
 
-**Implementação**: O nó HITL pausa o grafo LangGraph usando `interrupt()`. O médico visualiza a sugestão na interface React e decide:
+**Implementação**: o nó HITL pausa o grafo LangGraph usando `interrupt()` de verdade (não um placeholder) — a execução para dentro do nó `hitl` e só retoma quando a API recebe `POST /api/consulta/{session_id}/decisao` com a decisão do médico, via `Command(resume=...)`. Enquanto isso, a API já devolveu a síntese para a interface React, com `status: "aguardando_validacao"` e **sem nenhum documento**. O médico decide:
 
-- **Aprovar**: grafo segue para gerar_docs
-- **Editar**: texto volta para síntese com edição
-- **Rejeitar**: grafo encerra sem gerar documento
+- **Aprovar**: grafo segue para `gerar_docs` — documento é gerado normalmente
+- **Editar**: texto editado substitui a queixa principal, grafo segue para `gerar_docs`
+- **Rejeitar**: grafo termina sem gerar nenhum documento
 
 **Por que HITL é mandatório** (não opcional):
 

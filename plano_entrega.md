@@ -2,7 +2,7 @@
 
 Somente o que o enunciado exige. O percentual indica quanto do item já está pronto no `main` em 11/09/2026. Cada passo traz, marcado como (bloqueante), o motivo pelo qual bloqueia a entrega, seguido da citação do enunciado que sustenta isso.
 
-**Progresso geral estimado: 84%** (seções 2 e 3 concluídas — pipeline LangChain, consulta estruturada por paciente, HITL real via interrupt/checkpointer e logging por etapa)
+**Progresso geral estimado: 91%** (seções 2 e 3 concluídas; README com instruções completas e diagrama do fluxo LangChain adicionados)
 
 **Como ler as citações:** referem-se ao enunciado oficial, [8IADT - Fase 3 - Tech challenge.pdf](8IADT%20-%20Fase%203%20-%20Tech%20challenge.pdf), versionado na raiz do repositório. A linha é contada de cima para baixo, sem contar o cabeçalho "Tech Challenge Página X de 5". Na página 4, cada linha visual da tabela de datasets conta como uma linha.
 
@@ -80,12 +80,8 @@ Somente o que o enunciado exige. O percentual indica quanto do item já está pr
 * Projeto modularizado em Python (100%)
    * Pronto. O código está separado em módulos dentro de `backend/src`.
       > (pág 3, linha 15) "Projeto modularizado em Python;"
-* Instruções completas no README (70%)
-   * O README explica backend e frontend, mas não explica como rodar com o modelo real nem como gerar os dados.
-      > (pág 3, linha 16) "Instruções completas no README."
-   * Documentar como rodar com o modelo real, as variáveis de ambiente (`LLM_MOCK`, `LLM_MODEL`) e a geração da base de prontuários e do índice RAG.
-      > (bloqueante) Sem isso, o README não permite rodar o projeto com a LLM personalizada nem gerar os dados de que ele depende.
-      >
+* Instruções completas no README (100%)
+   * Feito. `README.md` (raiz) ganhou a seção "Rodando com o modelo real" (`LLM_MOCK`, `LLM_MODEL`) e a explicação do fluxo HITL em 2 etapas. `backend/README.md` ganhou a tabela completa de variáveis de ambiente (`LLM_MOCK`, `LLM_MODEL`, `LLM_BASE_MODEL`) e a seção "Gerar os dados que o backend consome" (índice RAG via `build_index_chatbulario.py`, base de prontuários auto-inicializada). Documentado honestamente o caveat de `build_index_local.py` (caminho hardcoded de outra máquina, collection `anvisa` obsoleta) em vez de mascarar.
       > (pág 3, linha 16) "Instruções completas no README."
 
 ## 5. Entregáveis
@@ -97,7 +93,7 @@ Somente o que o enunciado exige. O percentual indica quanto do item já está pr
    * Coberto pelos passos da seção 2 — feito.
       > (pág 3, linhas 19 e 21) "Código-fonte com: [...] Integração com LangChain;"
 * Repositório: fluxos do LangGraph (100%)
-   * Feito. A API executa o grafo compilado (`criar_workflow(...).invoke(state)`) de ponta a ponta.
+   * Feito. A API executa o grafo compilado (`criar_workflow(...).stream(state, ...)`) de ponta a ponta, com pausa real no nó `hitl` via `interrupt()`.
       > (pág 3, linhas 19 e 22) "Código-fonte com: [...] Fluxos do LangGraph."
 * Dataset anonimizado ou exemplo de dados sintéticos (100%)
    * Pronto. As notas clínicas sintéticas estão versionadas em `data/raw/synthetic_clinical_notes`. O enunciado aceita anonimizado ou sintético.
@@ -105,19 +101,15 @@ Somente o que o enunciado exige. O percentual indica quanto do item já está pr
 * Relatório: explicação do processo de fine-tuning (100%)
    * Pronto. Seções 2.2, 2.3 e 4 do relatório técnico.
       > (pág 3, linhas 24-25) "Relatório técnico detalhado com: Explicação do processo de fine-tuning;"
-* Relatório: descrição do assistente criado (60%)
-   * O texto descreve o Gradio e uma pausa com `interrupt()` que não existe no código.
+* Relatório: descrição do assistente criado (70%)
+   * O texto ainda descreve o Gradio em outras seções. A parte específica sobre a pausa com `interrupt()` deixou de ser uma imprecisão — o `interrupt()` agora existe de verdade no código (seção 3 deste plano), e a seção 2.6-2.7 do relatório foi atualizada junto com o diagrama abaixo para descrever o fluxo real de 7 nós e a API em 2 etapas.
       > (pág 4, linha 1) "Descrição do assistente médico criado;"
-   * Reescrever para descrever o assistente como ele está no código entregue.
-      > (bloqueante) A descrição atual não corresponde ao assistente entregue.
+   * Reescrever o restante do relatório (fora da seção 2.6-2.7) para não citar mais o Gradio.
+      > (bloqueante) A descrição em outras seções ainda não corresponde ao assistente entregue.
       >
       > (pág 4, linha 1) "Descrição do assistente médico criado;"
-* Relatório: diagrama do fluxo LangChain (0%)
-   * Não há diagrama em nenhum documento. Existe só uma linha de texto com setas.
-      > (pág 4, linha 2) "Diagrama do fluxo LangChain."
-   * Criar o diagrama do fluxo do grafo final e incluir no relatório técnico.
-      > (bloqueante) O diagrama não existe.
-      >
+* Relatório: diagrama do fluxo LangChain (100%)
+   * Feito. Diagrama Mermaid em `docs/RELATORIO_TECNICO_PARA_EQUIPE.md` (seção 2.6), mostrando os 7 nós reais do grafo e a divisão em 2 fases (`POST /api/consulta` até o `interrupt()` no `hitl`, `POST /api/consulta/{session_id}/decisao` retomando via `Command(resume=...)`).
       > (pág 4, linha 2) "Diagrama do fluxo LangChain."
 * Relatório: avaliação do modelo e análise dos resultados (100%)
    * Pronto. Perplexidade base contra fine-tunado, testes de generalização e análise de overfitting nas seções 4 e 5.

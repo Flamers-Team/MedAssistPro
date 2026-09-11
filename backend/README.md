@@ -41,6 +41,27 @@ A consulta é dividida em duas chamadas — nenhum documento é gerado sem a dec
 
 O estado pausado é persistido em `data/processed/checkpoints.db` (checkpointer SQLite do LangGraph), então sobrevive entre as duas requisições HTTP mesmo em processos/reloads diferentes.
 
+## Variáveis de ambiente
+
+| Variável | Default | Efeito |
+|---|---|---|
+| `LLM_MOCK` | `1` (definido automaticamente no `startup_event` da API se não estiver setado) | `1`/`true` → respostas sintéticas, sem GPU nem download de modelo. `0` → carrega o BioMistral-7B + adapter LoRA de verdade. |
+| `LLM_MODEL` | `michelleAnogueira/biomistral-medquad-lora` | Repo do HuggingFace Hub (ou caminho local) do adapter LoRA fine-tunado a ser carregado. |
+| `LLM_BASE_MODEL` | `BioMistral/BioMistral-7B` | Modelo base sobre o qual o adapter LoRA é aplicado (usado só se `LLM_MOCK=0`). |
+
+Para rodar com um adapter novo (ex.: depois de um fine-tuning): `export LLM_MODEL=usuario/novo-adapter` (ou `set` no Windows) antes de subir a API com `LLM_MOCK=0`.
+
+## Gerar os dados que o backend consome
+
+- **Base de prontuários** (`data/processed/prontuarios.db`): **não precisa gerar nada manualmente** — `ProntuarioStore` cria e popula o banco sozinho (4 pacientes sintéticos) na primeira vez que qualquer coisa importa `src.data.prontuarios`.
+- **Índice RAG** (`data/processed/chroma_index/`): a collection `chatbulario` (~68k bulas PT-BR, a única usada em produção hoje) é gerada com:
+  ```bash
+  cd backend
+  python src/rag/build_index_chatbulario.py
+  ```
+  As collections `cid10` e `synthetic` (também consultadas pelo `Retriever`) hoje só existem via `src/rag/build_index_local.py` — que tem um caminho (`BASE`) hardcoded de outra máquina e monta uma collection `anvisa` obsoleta em vez de `chatbulario`. Precisa de ajuste antes de rodar; ver `data/README.md` e o `.gitignore` para os datasets brutos esperados (`cid10_subcategorias.csv`, `synthetic_clinical_notes_anonimizado.jsonl` — este último gerado por `python src/data/04_anonimizar_synthetic.py`).
+- Sem o índice gerado, a API continua funcionando (RAG fica vazio, ver `Retriever` em `src/rag/retriever.py`) — só não traz contexto de bulário nas respostas.
+
 ## Smoke test
 
 ```bash

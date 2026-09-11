@@ -208,6 +208,23 @@ npm run dev -- --host 127.0.0.1 --port 3000
 
 O frontend ativo está em `frontend/src/App.jsx` e `frontend/src/styles.css`.
 
+**Validação médica (HITL)**: a consulta fica em duas etapas — o médico primeiro vê a sugestão (triagem + síntese), depois precisa **Aprovar**, **Editar e aprovar** ou **Rejeitar** na própria tela. O documento (PDF) só é gerado depois dessa decisão; nada é emitido automaticamente.
+
+## 🧠 Rodando com o modelo real (não-mock)
+
+Por padrão a API sobe em modo mock (`LLM_MOCK=1`, respostas sintéticas — não precisa de GPU). Para usar o BioMistral-7B + adapter LoRA de verdade:
+
+```bash
+cd backend
+# instale o torch com a build CUDA correta ANTES do requirements.txt — veja o
+# comentário em backend/requirements.txt (senão instala a build CPU-only por engano)
+set LLM_MOCK=0
+set LLM_MODEL=michelleAnogueira/biomistral-medquad-lora
+python -m uvicorn src.api.app:app --reload --port 8000
+```
+
+Requer GPU com VRAM suficiente (4-bit, ~5GB) ou bastante RAM em CPU (~28GB em fp32). Detalhes completos (todas as variáveis de ambiente, como gerar o índice RAG e a base de prontuários) em [`backend/README.md`](backend/README.md).
+
 ## 📄 Licença
 
 MIT — código aberto para fins acadêmicos.
