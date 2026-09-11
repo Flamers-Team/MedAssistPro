@@ -130,6 +130,8 @@ nul
 # Permitir txt pequenos (legíveis), bloquear PDFs/imagens pesadas
 *.pdf
 !docs/**/*.pdf
+# Enunciado oficial do Tech Challenge (referenciado em plano_entrega.md)
+!/8IADT - Fase 3 - Tech challenge.pdf
 *.png
 !docs/**/*.png
 *.jpg
