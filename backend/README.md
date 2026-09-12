@@ -33,7 +33,7 @@ pip install -r requirements.txt
 
 A API sobe em http://127.0.0.1:8000. O frontend (../frontend) espera a API rodando localmente nas portas padrão do CORS configurado em src/api/app.py.
 
-Importante: pip install torch sozinho instala a build CPU-only por padrão mesmo em máquina com GPU — instale o torch com a build CUDA correta antes deste pip install -r requirements.txt (veja o comentário no próprio requirements.txt).
+Importante: pip install torch sozinho instala a build CPU-only por padrão mesmo em máquina com GPU — instale o torch com a build CUDA correta antes deste ```pip install -r requirements.txt``` (veja o comentário no próprio requirements.txt).
 
 Rodando o Modelo Real vs. Mock
 Sem LLM_MOCK=1 no ambiente, a API tenta carregar o BioMistral-7B + adapter LoRA de verdade (via transformers/peft) na primeira consulta — isso baixa e carrega um modelo de 7B parâmetros. Requer GPU com VRAM suficiente (ideal: 4-bit, ~5GB) ou bastante RAM em CPU (~28GB em fp32). Para desenvolvimento/teste sem GPU, mantenha LLM_MOCK=1 (é o padrão definido no startup da API).
@@ -46,12 +46,13 @@ Para garantir que a aplicação não use o mock e ative o modelo real, passe a v
 Se estiver usando Prompt de Comando (CMD):
 
 DOS
-set LLM_MOCK=0 && python -m uvicorn src.api.app:app --reload --port 8000
+```set LLM_MOCK=0 && python -m uvicorn src.api.app:app --reload --port 8000```
+
 Se estiver usando PowerShell:
 
 PowerShell
-$env:LLM_MOCK="0"
-python -m uvicorn src.api.app:app --reload --port 8000
+```$env:LLM_MOCK="0"```
+```python -m uvicorn src.api.app:app --reload --port 8000```
 
 ### Fluxo de consulta (HITL em 2 etapas)
 
