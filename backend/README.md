@@ -4,7 +4,7 @@ API FastAPI do Assistente Médico IA (agentes, RAG, LangGraph, geração de docu
 
 ## Estrutura
 
-```
+```text
 backend/
 ├── src/
 │   ├── api/        # FastAPI app e rotas (app.py)
@@ -21,16 +21,37 @@ backend/
 ```
 
 ## Instalação e execução
+Pré-requisito importante: Recomendamos o uso do Python 3.11 ou 3.12. Versões muito recentes (como 3.14+) podem não ter suporte imediato das bibliotecas pesadas de Inteligência Artificial (como o PyTorch), causando erros na instalação.
 
 ```bash
 cd backend
+python -m venv venv
+# No Windows: .\venv\Scripts\activate
+# No Linux/Mac: source venv/bin/activate
 pip install -r requirements.txt
-python -m uvicorn src.api.app:app --reload --port 8000
 ```
 
-A API sobe em `http://127.0.0.1:8000`. O frontend (`../frontend`) espera a API rodando localmente nas portas padrão do CORS configurado em `src/api/app.py`.
+A API sobe em http://127.0.0.1:8000. O frontend (../frontend) espera a API rodando localmente nas portas padrão do CORS configurado em src/api/app.py.
 
-Sem `LLM_MOCK=1` no ambiente, a API tenta carregar o BioMistral-7B + adapter LoRA de verdade (via `transformers`/`peft`) na primeira consulta — isso baixa e carrega um modelo de 7B parâmetros. Requer GPU com VRAM suficiente (ideal: 4-bit, ~5GB) ou bastante RAM em CPU (~28GB em fp32). **Importante**: `pip install torch` sozinho instala a build CPU-only por padrão mesmo em máquina com GPU — instale o torch com a build CUDA correta antes deste `pip install -r requirements.txt` (veja o comentário no próprio `requirements.txt`). Para desenvolvimento/teste sem GPU, mantenha `LLM_MOCK=1` (é o padrão definido no startup da API).
+Importante: pip install torch sozinho instala a build CPU-only por padrão mesmo em máquina com GPU — instale o torch com a build CUDA correta antes deste pip install -r requirements.txt (veja o comentário no próprio requirements.txt).
+
+Rodando o Modelo Real vs. Mock
+Sem LLM_MOCK=1 no ambiente, a API tenta carregar o BioMistral-7B + adapter LoRA de verdade (via transformers/peft) na primeira consulta — isso baixa e carrega um modelo de 7B parâmetros. Requer GPU com VRAM suficiente (ideal: 4-bit, ~5GB) ou bastante RAM em CPU (~28GB em fp32). Para desenvolvimento/teste sem GPU, mantenha LLM_MOCK=1 (é o padrão definido no startup da API).
+
+Nota sobre Fallback de Memória: Caso a sua máquina não possua VRAM suficiente para suportar o modelo, a API fará uma "degradação elegante". Em vez de travar o sistema com um erro de Out of Memory, a IA retornará uma resposta no modo fallback indicando a indisponibilidade do LLM para que o fluxo não seja interrompido.
+
+Comandos de Execução para Windows:
+Para garantir que a aplicação não use o mock e ative o modelo real, passe a variável de ambiente corretamente de acordo com o seu terminal:
+
+Se estiver usando Prompt de Comando (CMD):
+
+DOS
+set LLM_MOCK=0 && python -m uvicorn src.api.app:app --reload --port 8000
+Se estiver usando PowerShell:
+
+PowerShell
+$env:LLM_MOCK="0"
+python -m uvicorn src.api.app:app --reload --port 8000
 
 ### Fluxo de consulta (HITL em 2 etapas)
 
