@@ -37,10 +37,11 @@ INSTALAÇÃO
 QUEM PODE ABRIR O SITE
   Regra única, sempre substituída. Não é tocada por --ligar nem --preparar.
 
-  --publico         libera para a internet inteira, apagando as regras de IP
-  --ip [CIDR...]    libera só os IPs informados, apagando a regra pública e as
+  --liberar-publico libera para a internet inteira, apagando as regras de IP
+  --liberar-ip [CIDR...]
+                    libera só os IPs informados, apagando a regra pública e as
                     anteriores. Sem argumento, usa o IP de quem rodou o comando.
-                    Ex.: --ip   ou   --ip 200.1.2.0/24
+                    Ex.: --liberar-ip   ou   --liberar-ip 200.1.2.0/24
 
 DIA A DIA
   ./medassist.sh --ligar          # máquina pronta e site no ar
@@ -130,11 +131,11 @@ IPS=()
 while [ $# -gt 0 ]; do
   case "$1" in
     --help|-h)      ajuda; exit 0 ;;
-    --status|--ligar|--desligar|--conectar|--logs|--publico) ACOES+=("$1") ;;
+    --status|--ligar|--desligar|--conectar|--logs|--liberar-publico) ACOES+=("$1") ;;
     --preparar)     PREPARAR=1 ;;
     --indexar-rag)  EXTRAS="$EXTRAS --indexar-rag" ;;
     --treinar)      EXTRAS="$EXTRAS --treinar" ;;
-    --ip)           shift; while [ $# -gt 0 ] && [[ "$1" != --* ]]; do IPS+=("$1"); shift; done; ACOES+=("--ip"); continue ;;
+    --liberar-ip)   shift; while [ $# -gt 0 ] && [[ "$1" != --* ]]; do IPS+=("$1"); shift; done; ACOES+=("--liberar-ip"); continue ;;
     *) echo "opção desconhecida: $1" >&2; echo; ajuda; exit 1 ;;
   esac
   shift
@@ -182,11 +183,11 @@ for acao in ${ACOES[@]+"${ACOES[@]}"}; do
       ;;
     --conectar) aws ssm start-session --target "$(_id)" --region "$REGIAO" ;;
     --logs)     _remoto "Logs da API:" '["journalctl -u medassist-api -n 40 --no-pager"]' ;;
-    --publico) _regra_acesso '["0.0.0.0/0"]' "Liberando o site para a internet inteira..." ;;
-    --ip)
+    --liberar-publico) _regra_acesso '["0.0.0.0/0"]' "Liberando o site para a internet inteira..." ;;
+    --liberar-ip)
       if [ ${#IPS[@]} -eq 0 ]; then
         MEU_IP=$(_meu_ip)
-        [ -n "$MEU_IP" ] || { echo "Não consegui descobrir seu IP. Informe manualmente: --ip 189.1.2.3/32" >&2; exit 1; }
+        [ -n "$MEU_IP" ] || { echo "Não consegui descobrir seu IP. Informe manualmente: --liberar-ip 189.1.2.3/32" >&2; exit 1; }
         IPS=("$MEU_IP/32")
         echo "IP detectado: $MEU_IP"
       fi

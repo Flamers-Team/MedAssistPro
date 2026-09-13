@@ -51,8 +51,6 @@ publicado, rode `--treinar` e grave de novo.
 ./medassist.sh --desligar      # desliga: para a cobrança por hora
 ./medassist.sh --conectar      # terminal dentro da máquina
 ./medassist.sh --logs          # logs da API
-./medassist.sh --ativar-mock   # site responde sem GPU, com texto sintético
-./medassist.sh --ativar-gpu    # site responde com o modelo real
 ```
 
 ## Custo
@@ -72,9 +70,9 @@ O terminal é pelo Session Manager, que exige login no SSO da AWS. O site em
 
 Quem pode abrir o site é uma regra única, sempre substituída:
 
-- `./medassist.sh --ip` restringe ao IP de quem rodou o comando.
-- `./medassist.sh --ip 200.1.2.0/24` restringe às faixas informadas.
-- `./medassist.sh --publico` libera para a internet inteira.
+- `./medassist.sh --liberar-ip` restringe ao IP de quem rodou o comando.
+- `./medassist.sh --liberar-ip 200.1.2.0/24` restringe às faixas informadas.
+- `./medassist.sh --liberar-publico` libera para a internet inteira.
 
 A preparação e o `--ligar` não mexem nessa regra: quem pode abrir o site é decisão
 separada, tomada só por `--ip` e `--publico`.
