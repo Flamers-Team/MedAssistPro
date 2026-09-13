@@ -8,45 +8,53 @@ REGIAO="${AWS_REGION:-us-east-1}"
 
 ajuda() {
   cat <<'AJUDA'
-MedAssistPro — controle da máquina na AWS
+MedAssistPro — controle da máquina com GPU na AWS
 
   ./medassist.sh [opções]
 
+A máquina precisa existir antes: cd infra && terraform apply
+
 MÁQUINA
   --status          estado atual, endereço e IP fixo
-  --ligar           liga a máquina, espera ficar pronta e, se ela ainda não
-                    tiver sido preparada, roda a preparação sozinho
-  --desligar        desliga (preserva disco e IP, para a cobrança por hora)
+  --ligar           liga e espera ficar pronta. Na primeira vez, roda a
+                    preparação sozinho
+  --desligar        desliga. Preserva disco e IP, e para a cobrança por hora
   --conectar        abre um terminal dentro da máquina (Session Manager)
   --logs            últimas linhas do serviço da API
 
 INSTALAÇÃO
-  --preparar        instala e configura tudo na máquina: pacotes, Node, Caddy,
-                    código do projeto, arquivos do Git LFS, ambiente Python,
-                    interface compilada, serviço da API e download do modelo.
-                    Roda sozinho no primeiro --ligar, e pode ser repetido sem
-                    quebrar nada. (~10 min)
+  As duas últimas exigem uma máquina já preparada e rodam isoladamente, em
+  momentos distintos. Se ela não estiver preparada, falham em vez de instalar.
+
+  --preparar        instala e configura tudo: pacotes, Node, Caddy, código do
+                    projeto, arquivos do Git LFS, ambiente Python, interface
+                    compilada, serviço da API e download do modelo. Repetir não
+                    quebra nada (~10 min)
   --indexar-rag     constrói o índice do RAG com 10 mil bulas (~10 min)
   --treinar         gera o dataset interno, anonimiza, treina o adapter e passa
                     a usar o modelo novo (~5 min)
 
-                    As duas exigem uma máquina já preparada e podem rodar
-                    isoladamente, em momentos distintos. Se a máquina não
-                    estiver preparada, elas falham em vez de instalar sozinhas.
+QUEM PODE ABRIR O SITE
+  Regra única, sempre substituída. Não é tocada por --ligar nem --preparar.
 
-QUEM PODE ABRIR O SITE (regra única, sempre substituída)
   --publico         libera para a internet inteira, apagando as regras de IP
   --ip [CIDR...]    libera só os IPs informados, apagando a regra pública e as
-                    regras anteriores. Sem argumento, usa o IP de quem está
-                    rodando o comando. Ex.: --ip   ou   --ip 200.1.2.0/24
+                    anteriores. Sem argumento, usa o IP de quem rodou o comando.
+                    Ex.: --ip   ou   --ip 200.1.2.0/24
 
-EXEMPLOS
+DIA A DIA
+  ./medassist.sh --ligar          # máquina pronta e site no ar
   ./medassist.sh --status
-  ./medassist.sh --preparar --indexar-rag --treinar     # máquina nova, completa
-  ./medassist.sh --ip                                   # só o seu IP abre o site
-  ./medassist.sh --publico                              # volta a liberar geral
-  ./medassist.sh --desligar
+  ./medassist.sh --desligar       # sempre, ao terminar
 
+SEQUÊNCIA PARA GRAVAR O ANTES E O DEPOIS DO FINE-TUNING
+  ./medassist.sh --ligar          # sobe com o adapter publicado
+  ./medassist.sh --indexar-rag    # busca em bulas ativa, fora da gravação
+  ... grave a consulta: é o ANTES
+  ./medassist.sh --treinar        # 3 min, dá para filmar a perda caindo
+  ... repita a mesma consulta: é o DEPOIS
+
+Ligada custa cerca de US$ 0,80 por hora. Desligada, só disco e IP.
 Usa o seu login do SSO. Se expirar: aws sso login --profile selvs
 AJUDA
 }
