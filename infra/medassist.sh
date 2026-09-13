@@ -35,14 +35,16 @@ INSTALAÇÃO
                     a usar o modelo novo (~5 min)
 
 MODELO QUE O SITE USA
-  --modelo publicado   usa o adapter publicado (michelleAnogueira/biomistral-
-                       medquad-lora), treinado só com MedQuAD. É o "antes"
-  --modelo treinado    usa o adapter treinado nesta máquina
-                       (biomistral-medassist-lora), com MedQuAD + dados
-                       internos do hospital. É o "depois"
+  A troca leva segundos. A primeira consulta depois dela demora ~2 min, porque
+  o modelo é carregado.
 
-                       A troca leva segundos. A primeira consulta depois dela
-                       demora ~2 min, porque o modelo é carregado.
+  --modelo publicado
+                    o adapter treinado só com MedQuAD. É o "antes"
+                    michelleAnogueira/biomistral-medquad-lora
+  --modelo treinado
+                    o adapter treinado nesta máquina, com MedQuAD mais os dados
+                    internos do hospital. É o "depois"
+                    biomistral-medassist-lora
 
 QUEM PODE ABRIR O SITE
   Regra única, sempre substituída. Não é tocada por --ligar nem --preparar.
