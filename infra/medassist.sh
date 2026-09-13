@@ -23,8 +23,8 @@ MÁQUINA
   --logs            últimas linhas do serviço da API
 
 INSTALAÇÃO
-  As duas últimas exigem uma máquina já preparada e rodam isoladamente, em
-  momentos distintos. Se ela não estiver preparada, falham em vez de instalar.
+  --indexar-rag e --treinar exigem uma máquina já preparada e rodam isoladamente,
+  em momentos distintos. Se ela não estiver preparada, falham em vez de instalar.
 
   --preparar        instala e configura tudo: pacotes, Node, Caddy, código do
                     projeto, arquivos do Git LFS, ambiente Python, interface
@@ -59,12 +59,13 @@ DIA A DIA
   ./medassist.sh --desligar       # sempre, ao terminar
 
 SEQUÊNCIA PARA GRAVAR O ANTES E O DEPOIS DO FINE-TUNING
-  ./medassist.sh --ligar          # sobe com o adapter publicado
-  ./medassist.sh --indexar-rag    # busca em bulas ativa, fora da gravação
+  ./medassist.sh --ligar              # máquina pronta e site no ar
+  ./medassist.sh --indexar-rag        # busca em bulas ativa, fora da gravação
+  ./medassist.sh --modelo publicado   # garante o estado anterior ao treino
   ... grave a consulta: é o ANTES
-  ./medassist.sh --treinar        # 3 min, dá para filmar a perda caindo
+  ./medassist.sh --treinar            # 3 min, dá para filmar a perda caindo
   ... repita a mesma consulta: é o DEPOIS
-  ./medassist.sh --modelo publicado   # volta ao "antes", para regravar
+  Para regravar o ANTES, é só voltar com --modelo publicado.
 
 Ligada custa cerca de US$ 0,80 por hora. Desligada, só disco e IP.
 Usa o seu login do SSO. Se expirar: aws sso login --profile selvs
