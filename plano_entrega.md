@@ -2,28 +2,28 @@
 
 Somente o que o enunciado exige. O percentual indica quanto do item já está pronto no `main` em 11/09/2026. Cada passo traz, marcado como (bloqueante), o motivo pelo qual bloqueia a entrega, seguido da citação do enunciado que sustenta isso.
 
-**Progresso geral estimado: 91%** (seções 2 e 3 concluídas; README com instruções completas e diagrama do fluxo LangChain adicionados)
+**Progresso geral estimado: 92%** (seções 2 e 3 concluídas; README com instruções completas e diagrama do fluxo LangChain adicionados)
 
 **Como ler as citações:** referem-se ao enunciado oficial, [8IADT - Fase 3 - Tech challenge.pdf](8IADT%20-%20Fase%203%20-%20Tech%20challenge.pdf), versionado na raiz do repositório. A linha é contada de cima para baixo, sem contar o cabeçalho "Tech Challenge Página X de 5". Na página 4, cada linha visual da tabela de datasets conta como uma linha.
 
 ## 1. Fine-tuning de LLM com dados médicos internos
 
-* Fine-tuning de LLM com protocolos, perguntas de médicos e modelos de laudo/receita (60%)
+* Fine-tuning de LLM com protocolos, perguntas de médicos e modelos de laudo/receita (85%)
    * O adapter atual foi treinado só com MedQuAD, que são perguntas gerais de saúde. Os três tipos de dado pedidos não estão no treino.
       > (pág 2, linhas 21-25) "Realizar o fine-tuning de um modelo LLM (como LLaMA, Falcon ou um outro) utilizando: Protocolos médicos do hospital; Exemplos de perguntas frequentes feitas por médicos; Modelos de laudos, receitas e procedimentos internos."
       >
       > (pág 2, linhas 9-10) "criar um assistente virtual médico treinado com os dados próprios do hospital"
-   * Criar dataset sintético com protocolos internos do hospital, perguntas frequentes de médicos e modelos de laudo, receita e procedimento.
+   * ~~Criar dataset sintético com protocolos internos do hospital, perguntas frequentes de médicos e modelos de laudo, receita e procedimento.~~ Feito: 42 exemplos em `data/raw/dados_internos_hospital.jsonl`.
       > (bloqueante) O fine-tuning precisa usar esses três tipos de dado, e hoje eles não existem no projeto. Como não há dados reais de hospital, o enunciado aceita dados sintéticos.
       >
       > (pág 2, linhas 23-25) "Protocolos médicos do hospital; Exemplos de perguntas frequentes feitas por médicos; Modelos de laudos, receitas e procedimentos internos."
       >
       > (pág 3, linha 23) "Dataset anonimizado ou exemplo de dados sintéticos;"
-   * Passar o novo dataset pelo pipeline de preprocessing, anonimização e validação de `backend/src/data`.
+   * ~~Passar o novo dataset pelo pipeline de preprocessing, anonimização e validação de `backend/src/data`.~~ Feito: 42 de 42 aprovados, nota 100.
       > (bloqueante) Todo dado usado no treino precisa passar por essa preparação.
       >
       > (pág 2, linhas 26-27) "Preparar os dados com técnicas de preprocessing, anonimização e curadoria."
-   * Treinar nova versão do adapter incluindo o dataset interno, usando `notebooks/02_finetuning.ipynb`.
+   * ~~Treinar nova versão do adapter incluindo o dataset interno.~~ Feito em 2,4 min numa g6.xlarge, por `backend/src/data/05_treinar_adapter.py`. Loss de 1,39 para 0,15.
       > (bloqueante) Sem novo treino, o modelo continua sem os dados pedidos.
       >
       > (pág 2, linhas 21-22) "Realizar o fine-tuning de um modelo LLM (como LLaMA, Falcon ou um outro) utilizando:"
@@ -31,7 +31,7 @@ Somente o que o enunciado exige. O percentual indica quanto do item já está pr
       > (bloqueante) O relatório precisa avaliar o modelo entregue, e o modelo entregue passa a ser o novo adapter.
       >
       > (pág 4, linha 3) "Avaliação do modelo e análise dos resultados."
-   * Apontar `LLM_MODEL` para o novo adapter.
+   * ~~Apontar `LLM_MODEL` para o novo adapter.~~ Feito na instância. Falta publicar o adapter fora dela.
       > (bloqueante) Sem isso, o assistente continua usando o adapter antigo, que não foi treinado com os dados pedidos.
       >
       > (pág 3, linhas 2-3) "Utilizar o LangChain para: Construir um pipeline que integre a LLM customizada;"
