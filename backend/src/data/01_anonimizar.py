@@ -8,7 +8,7 @@ Este script:
 3. Filtra outputs de baixa qualidade (< 50 chars ou que repetem pergunta)
 4. Remove duplicatas exatas
 5. Salva em: data/processed/medquad_anonimizado.jsonl
-6. Gera relatório de curadoria em: data/processed/relatorio_curadoria.txt
+6. Gera relatório em: data/processed/relatorio_curadoria_<dataset>.txt
 
 Uso:
     python src/data/01_anonimizar.py
@@ -49,7 +49,8 @@ OUTPUT_FILE = Path(os.environ.get(
 ))
 REPORT_FILE = Path(os.environ.get(
     "REPORT_FILE",
-    PROJECT_ROOT / "data" / "processed" / "relatorio_curadoria.txt"
+    PROJECT_ROOT / "data" / "processed"
+    / f"relatorio_curadoria_{OUTPUT_FILE.stem.replace('_anonimizado', '')}.txt"
 ))
 
 # ============================================================

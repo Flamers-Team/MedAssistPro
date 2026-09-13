@@ -9,8 +9,8 @@ Este script faz 4 tipos de validação no dataset pré-treino:
 3. DETECÇÃO DE ANOMALIAS — outputs suspeitos que escaparam dos filtros
 4. COERÊNCIA TEMÁTICA — verifica se instruction+input são coerentes com output
 
-Gera relatório completo em: data/processed/relatorio_validacao.txt
-Gera arquivo de amostras em: data/processed/amostras_para_revisao.json
+Gera relatório em: data/processed/relatorio_validacao_<dataset>.txt
+Gera amostras em: data/processed/amostras_para_revisao_<dataset>.json
 
 Uso:
     python src/data/03_validar_qualidade.py
@@ -40,8 +40,17 @@ INPUT_FILE = Path(os.environ.get(
     "INPUT_FILE",
     PROJECT_ROOT / "data" / "processed" / "train.jsonl"
 ))
-REPORT_FILE = PROJECT_ROOT / "data" / "processed" / "relatorio_validacao.txt"
-AMOSTRAS_FILE = PROJECT_ROOT / "data" / "processed" / "amostras_para_revisao.json"
+# O nome do relatório sai do dataset avaliado: assim, validar um conjunto novo
+# não apaga a evidência de outro já validado.
+_SUFIXO = INPUT_FILE.stem.replace("_anonimizado", "").replace("train", "medquad")
+REPORT_FILE = Path(os.environ.get(
+    "REPORT_FILE",
+    PROJECT_ROOT / "data" / "processed" / f"relatorio_validacao_{_SUFIXO}.txt"
+))
+AMOSTRAS_FILE = Path(os.environ.get(
+    "AMOSTRAS_FILE",
+    PROJECT_ROOT / "data" / "processed" / f"amostras_para_revisao_{_SUFIXO}.json"
+))
 
 N_AMOSTRAS = 50
 RANDOM_SEED = 42

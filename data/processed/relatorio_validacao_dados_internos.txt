@@ -1,6 +1,6 @@
 ======================================================================
 RELATÓRIO DE VALIDAÇÃO QUALITATIVA — Passo 2.5
-Gerado em: 2026-09-13 01:13:23
+Gerado em: 2026-09-13 03:10:42
 Dataset: dados_internos_anonimizado.jsonl
 ======================================================================
 
@@ -57,7 +57,7 @@ Dataset: dados_internos_anonimizado.jsonl
   Recomendação: 🟢 EXCELENTE — Pronto para fine-tuning
 
 📁 PRÓXIMOS PASSOS:
-  1. Revisar manualmente: amostras_para_revisao.json
+  1. Revisar manualmente: amostras_para_revisao_dados_internos.json
      (32 amostras estratificadas)
   2. Se veredicto verde → seguir para fine-tuning no Colab Pro
   3. Se veredicto amarelo → considerar adicionar dados sintéticos
