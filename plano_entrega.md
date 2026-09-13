@@ -2,13 +2,13 @@
 
 Somente o que o enunciado exige. O percentual indica quanto do item já está pronto no `main` em 11/09/2026. Cada passo traz, marcado como (bloqueante), o motivo pelo qual bloqueia a entrega, seguido da citação do enunciado que sustenta isso.
 
-**Progresso geral estimado: 92%** (seções 2 e 3 concluídas; README com instruções completas e diagrama do fluxo LangChain adicionados)
+**Progresso geral estimado: 94%** (seções 2 e 3 concluídas; README com instruções completas e diagrama do fluxo LangChain adicionados)
 
 **Como ler as citações:** referem-se ao enunciado oficial, [8IADT - Fase 3 - Tech challenge.pdf](8IADT%20-%20Fase%203%20-%20Tech%20challenge.pdf), versionado na raiz do repositório. A linha é contada de cima para baixo, sem contar o cabeçalho "Tech Challenge Página X de 5". Na página 4, cada linha visual da tabela de datasets conta como uma linha.
 
 ## 1. Fine-tuning de LLM com dados médicos internos
 
-* Fine-tuning de LLM com protocolos, perguntas de médicos e modelos de laudo/receita (85%)
+* Fine-tuning de LLM com protocolos, perguntas de médicos e modelos de laudo/receita (95%)
    * O adapter atual foi treinado só com MedQuAD, que são perguntas gerais de saúde. Os três tipos de dado pedidos não estão no treino.
       > (pág 2, linhas 21-25) "Realizar o fine-tuning de um modelo LLM (como LLaMA, Falcon ou um outro) utilizando: Protocolos médicos do hospital; Exemplos de perguntas frequentes feitas por médicos; Modelos de laudos, receitas e procedimentos internos."
       >
@@ -27,7 +27,7 @@ Somente o que o enunciado exige. O percentual indica quanto do item já está pr
       > (bloqueante) Sem novo treino, o modelo continua sem os dados pedidos.
       >
       > (pág 2, linhas 21-22) "Realizar o fine-tuning de um modelo LLM (como LLaMA, Falcon ou um outro) utilizando:"
-   * Avaliar o novo adapter e atualizar a seção de avaliação do relatório.
+   * ~~Avaliar o novo adapter e atualizar a seção de avaliação do relatório.~~ Feito: perplexidade nos dados internos caiu de 5,43 para 1,78, e no MedQuAD de 1,83 para 1,61, sem esquecimento. Seção 5.6 do relatório técnico.
       > (bloqueante) O relatório precisa avaliar o modelo entregue, e o modelo entregue passa a ser o novo adapter.
       >
       > (pág 4, linha 3) "Avaliação do modelo e análise dos resultados."

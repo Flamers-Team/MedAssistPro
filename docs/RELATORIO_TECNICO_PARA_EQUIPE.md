@@ -532,6 +532,57 @@ Carregamos o modelo **base** (BioMistral-7B sem fine-tuning) e comparamos respos
 
 ---
 
+
+### 5.6. Fine-tuning com dados internos do hospital (adapter v2) ⭐ NOVO
+
+O adapter publicado foi treinado apenas com o MedQuAD, que é conteúdo do NIH, em
+inglês e em texto corrido. Isso gerava um defeito concreto em produção: os
+agentes pedem resposta em JSON estrito, o modelo devolvia texto solto e o
+sistema caía no fallback, com triagem marcada como "falha no parsing" e síntese
+vazia.
+
+**O que foi feito**
+
+Foi criado um dataset com os três tipos de dado que o enunciado exige
+(protocolos médicos do hospital, perguntas frequentes de médicos e modelos de
+laudos, receitas e procedimentos internos), escrito no mesmo formato de prompt
+que os agentes montam em produção. São 42 exemplos de treino e 7 reservados para
+avaliação, gerados por `backend/src/data/00_gerar_dados_internos.py`.
+
+O treino (`backend/src/data/05_treinar_adapter.py`) continua o fine-tuning por
+cima do adapter já publicado, em 4 bits, numa instância `g6.xlarge` da AWS.
+Levou 2,4 minutos, com a perda caindo de 1,39 para 0,15.
+
+**Avaliação por perplexidade** (`backend/src/data/06_avaliar_adapter.py`)
+
+| Conjunto | BioMistral base | Adapter v1 (MedQuAD) | Adapter v2 (MedQuAD + internos) |
+|---|---|---|---|
+| Dados internos (7 exemplos inéditos) | 6,21 | 5,43 | **1,78** |
+| MedQuAD (amostra de 50) | 7,10 | 1,83 | **1,61** |
+
+**Análise dos resultados**
+
+- Nos dados internos, a perplexidade caiu 67% em relação ao adapter anterior
+  (5,43 para 1,78). O modelo aprendeu o formato de resposta que o sistema espera.
+- No MedQuAD, o número não piorou: caiu de 1,83 para 1,61. Ou seja, não houve
+  esquecimento do treino anterior, que era o principal risco de treinar por cima
+  com um dataset pequeno.
+- Na prática, a triagem e a síntese passaram a devolver JSON válido, e o tempo de
+  resposta caiu de cerca de 60 segundos para 7 a 22 segundos, porque o modelo
+  aprendeu a encerrar a resposta em vez de continuar gerando texto.
+
+**Limitações declaradas**
+
+- O conteúdo do dataset é **sintético** e **não passou por validação clínica**:
+  a equipe não tem médico. Isso está registrado no próprio dataset, que marca
+  cada exemplo com a origem `sintetico-interno`.
+- Com 42 exemplos, o modelo aprendeu o formato, não o conteúdo clínico. Nos
+  testes, ele produziu códigos CID incorretos (por exemplo, citou L97.0 para
+  diabetes, que é úlcera de membro inferior). A conferência das informações
+  continua sendo do médico, o que o fluxo de validação humana já exige.
+- O conjunto de avaliação tem apenas 7 exemplos internos, então o número serve
+  como indicativo, não como medida estatisticamente robusta.
+
 ## 6. Tradução PT-BR ↔ EN ⭐ NOVO
 
 ### 6.1. Problema Identificado

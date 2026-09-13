@@ -33,9 +33,15 @@ from src.agents.triagem import TRIAGEM_SYSTEM_PROMPT  # noqa: E402
 from src.data.dados_internos.duvidas import DUVIDAS  # noqa: E402
 from src.data.dados_internos.modelos import MODELOS  # noqa: E402
 from src.data.dados_internos.protocolos import PROTOCOLOS  # noqa: E402
+from src.data.dados_internos.validacao import (  # noqa: E402
+    DUVIDAS_VAL,
+    MODELOS_VAL,
+    PROTOCOLOS_VAL,
+)
 
 PROJETO = BACKEND.parent
-SAIDA = Path(sys.argv[1]) if len(sys.argv) > 1 else PROJETO / "data" / "raw" / "dados_internos_hospital.jsonl"
+ARGS = [a for a in sys.argv[1:] if not a.startswith("--")]
+SAIDA = Path(ARGS[0]) if ARGS else PROJETO / "data" / "raw" / "dados_internos_hospital.jsonl"
 
 ORIGEM = "sintetico-interno"
 
@@ -44,7 +50,7 @@ def _json(dados: dict) -> str:
     return json.dumps(dados, ensure_ascii=False, indent=2)
 
 
-def exemplos_triagem() -> list[dict]:
+def exemplos_triagem(fonte=None) -> list[dict]:
     """Protocolos do hospital, no formato do agente de triagem."""
     return [
         {
@@ -54,14 +60,14 @@ def exemplos_triagem() -> list[dict]:
             "tipo": "protocolo_triagem",
             "origem": ORIGEM,
         }
-        for p in PROTOCOLOS
+        for p in (fonte if fonte is not None else PROTOCOLOS)
     ]
 
 
-def exemplos_sintese() -> list[dict]:
+def exemplos_sintese(fonte=None) -> list[dict]:
     """Dúvidas de médicos, no formato do agente de síntese."""
     exemplos = []
-    for d in DUVIDAS:
+    for d in (fonte if fonte is not None else DUVIDAS):
         contexto_interno = "\n".join(d["rag"]) or "(sem protocolos específicos)"
         user = f"""
 RELATO: {d['relato']}
@@ -86,7 +92,7 @@ Resposta JSON:"""
     return exemplos
 
 
-def exemplos_documentos() -> list[dict]:
+def exemplos_documentos(fonte=None) -> list[dict]:
     """Modelos de laudo, receita e procedimentos internos."""
     return [
         {
@@ -96,12 +102,20 @@ def exemplos_documentos() -> list[dict]:
             "tipo": "modelo_documento",
             "origem": ORIGEM,
         }
-        for m in MODELOS
+        for m in (fonte if fonte is not None else MODELOS)
     ]
 
 
 def main() -> None:
-    exemplos = exemplos_triagem() + exemplos_sintese() + exemplos_documentos()
+    validacao = "--validacao" in sys.argv
+    if validacao:
+        exemplos = (
+            exemplos_triagem(PROTOCOLOS_VAL)
+            + exemplos_sintese(DUVIDAS_VAL)
+            + exemplos_documentos(MODELOS_VAL)
+        )
+    else:
+        exemplos = exemplos_triagem() + exemplos_sintese() + exemplos_documentos()
 
     SAIDA.parent.mkdir(parents=True, exist_ok=True)
     with SAIDA.open("w", encoding="utf-8") as f:
