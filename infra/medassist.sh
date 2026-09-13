@@ -47,7 +47,6 @@ MODELO QUE O SITE USA
 
                     Outro valor é aceito como está, seja um repositório do
                     HuggingFace ou um caminho dentro da máquina.
-                    biomistral-medassist-lora
 
 QUEM PODE ABRIR O SITE
   Regra única, sempre substituída. Não é tocada por --ligar nem --preparar.
