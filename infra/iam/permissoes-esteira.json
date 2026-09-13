@@ -44,13 +44,16 @@
       }
     },
     {
-      "Sid": "RodarComandosDentroDaMaquina",
+      "Sid": "UsarDocumentoDeShellDaAWS",
       "Effect": "Allow",
       "Action": "ssm:SendCommand",
-      "Resource": [
-        "arn:aws:ssm:us-east-1::document/AWS-RunShellScript",
-        "arn:aws:ec2:us-east-1:481665095044:instance/*"
-      ],
+      "Resource": "arn:aws:ssm:us-east-1::document/AWS-RunShellScript"
+    },
+    {
+      "Sid": "RodarComandosSomenteNestaMaquina",
+      "Effect": "Allow",
+      "Action": "ssm:SendCommand",
+      "Resource": "arn:aws:ec2:us-east-1:481665095044:instance/*",
       "Condition": {
         "StringEquals": {
           "ssm:resourceTag/Projeto": "MedAssistPro"

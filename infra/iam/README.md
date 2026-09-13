@@ -12,7 +12,7 @@ Criar e destruir continua sendo feito com o seu usuário, rodando Terraform.
 | `ec2:Describe*`, `ssm:Describe*`, `ssm:GetCommandInvocation` | ver o estado do ambiente | leitura |
 | `ec2:StartInstances`, `StopInstances` | ligar e desligar | só recursos com a etiqueta `Projeto=MedAssistPro` |
 | `ec2:AuthorizeSecurityGroupIngress`, `RevokeSecurityGroupIngress` | abrir e fechar o site | só o grupo do projeto |
-| `ssm:SendCommand` | rodar preparar, indexar, treinar e trocar o modelo | só a instância do projeto |
+| `ssm:SendCommand` | rodar preparar, indexar, treinar e trocar o modelo | o documento de shell da AWS, e só a instância do projeto |
 
 Não há permissão para criar, destruir, redimensionar nem acessar dados de
 outros serviços.
@@ -36,6 +36,15 @@ aws iam get-role --role-name medassist-esteira --query Role.Arn --output text
 
 Depois, no GitHub, em Settings → Secrets and variables → Actions → Variables,
 crie a variável `AWS_ROLE_ARN` com o valor devolvido pelo último comando.
+
+## Reaplicar depois de mudar a política
+
+```bash
+AWS_PROFILE=selvs aws iam put-role-policy \
+  --role-name medassist-esteira \
+  --policy-name medassist-operar \
+  --policy-document file://infra/iam/permissoes-esteira.json
+```
 
 ## Como usar
 
