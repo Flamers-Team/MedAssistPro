@@ -3,7 +3,11 @@
 set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-export AWS_PROFILE="${AWS_PROFILE:-selvs}"
+# Na sua máquina, usa o perfil do SSO. Na esteira, as credenciais já vêm no
+# ambiente (OIDC), e forçar um perfil inexistente quebraria tudo.
+if [ -z "${AWS_PROFILE:-}" ] && [ -z "${AWS_ACCESS_KEY_ID:-}" ]; then
+  export AWS_PROFILE=selvs
+fi
 REGIAO="${AWS_REGION:-us-east-1}"
 
 ajuda() {
@@ -86,7 +90,10 @@ _id() {
   id=$(aws ec2 describe-instances --region "$REGIAO" \
     --filters "Name=tag:Name,Values=$NOME-gpu" \
               "Name=instance-state-name,Values=pending,running,stopping,stopped" \
-    --query "Reservations[0].Instances[0].InstanceId" --output text 2>/dev/null)
+    --query "Reservations[0].Instances[0].InstanceId" --output text) || {
+    echo "Falha ao consultar a AWS. Confira as credenciais." >&2
+    exit 1
+  }
   if [ -z "$id" ] || [ "$id" = "None" ]; then
     echo "Máquina '$NOME-gpu' não encontrada. Crie com: terraform -chdir=$DIR apply" >&2
     exit 1

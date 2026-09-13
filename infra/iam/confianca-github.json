@@ -13,7 +13,10 @@
           "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
         },
         "StringLike": {
-          "token.actions.githubusercontent.com:sub": "repo:Flamers-Team/MedAssistPro:*"
+          "token.actions.githubusercontent.com:sub": [
+            "repo:Flamers-Team/MedAssistPro:*",
+            "repo:Flamers-Team@274118059/MedAssistPro@1352613822:*"
+          ]
         }
       }
     }
