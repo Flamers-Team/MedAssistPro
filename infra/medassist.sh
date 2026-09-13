@@ -134,54 +134,64 @@ _modelo_atual() {
 }
 
 # Roda comandos dentro da máquina, mostrando a saída enquanto ela acontece.
-# O SSM não transmite em tempo real, então buscamos a saída parcial de tempos
-# em tempos e imprimimos só o que for novo. Sem isso, uma preparação de 20
-# minutos ficaria em silêncio até o fim.
+#
+# O Session Manager só devolve a saída quando o comando termina, o que deixava
+# uma preparação de 20 minutos em silêncio. Por isso o comando grava tudo num
+# arquivo na máquina, e aqui lemos esse arquivo de tempos em tempos.
 _remoto() {
   local descricao="$1" comandos="$2"
   local id; id="$(_id)"
   echo "$descricao"
 
+  local arquivo="/var/log/medassist-$(date +%s).log"
+  # Redireciona todo o resto da execução para o arquivo (mesmo shell remoto).
+  local com_log="[\"exec > $arquivo 2>&1\",${comandos#[}"
+
   local cmd
   cmd=$(aws ssm send-command --region "$REGIAO" --instance-ids "$id" \
     --document-name "AWS-RunShellScript" --timeout-seconds 7200 \
-    --parameters "commands=$comandos" --query "Command.CommandId" --output text)
+    --parameters "commands=$com_log" --query "Command.CommandId" --output text)
 
-  local impresso=0 estado="Pending" saida novas
+  local linhas=0 estado="Pending" novas
   while : ; do
-    saida=$(aws ssm get-command-invocation --command-id "$cmd" --instance-id "$id" \
-      --region "$REGIAO" --query "StandardOutputContent" --output text 2>/dev/null || true)
-    if [ -n "$saida" ] && [ "$saida" != "None" ]; then
-      novas=$(printf '%s\n' "$saida" | tail -n +$((impresso + 1)))
-      if [ -n "$novas" ]; then
-        printf '%s\n' "$novas"
-        impresso=$(printf '%s\n' "$saida" | wc -l)
-      fi
+    novas=$(_ler_arquivo "$id" "$arquivo" "$((linhas + 1))")
+    if [ -n "$novas" ]; then
+      printf '%s\n' "$novas"
+      linhas=$((linhas + $(printf '%s\n' "$novas" | wc -l)))
     fi
 
     estado=$(aws ssm get-command-invocation --command-id "$cmd" --instance-id "$id" \
       --region "$REGIAO" --query "Status" --output text 2>/dev/null || echo "Pending")
     case "$estado" in
-      Pending|InProgress|Delayed)
-        # Espera até 100 s por mudança de estado, sem travar em sleep.
-        aws ssm wait command-executed --command-id "$cmd" --instance-id "$id" \
-          --region "$REGIAO" 2>/dev/null || true ;;
+      Pending|InProgress|Delayed) ;;
       *) break ;;
     esac
   done
 
-  # Última leitura, para pegar o que saiu entre a penúltima consulta e o fim.
-  saida=$(aws ssm get-command-invocation --command-id "$cmd" --instance-id "$id" \
-    --region "$REGIAO" --query "StandardOutputContent" --output text 2>/dev/null || true)
-  novas=$(printf '%s\n' "$saida" | tail -n +$((impresso + 1)))
+  novas=$(_ler_arquivo "$id" "$arquivo" "$((linhas + 1))")
   [ -n "$novas" ] && printf '%s\n' "$novas"
 
   if [ "$estado" != "Success" ]; then
     echo "Comando terminou como: $estado" >&2
-    aws ssm get-command-invocation --command-id "$cmd" --instance-id "$id" \
-      --region "$REGIAO" --query "StandardErrorContent" --output text 2>/dev/null | tail -20 >&2
     return 1
   fi
+}
+
+# Lê um arquivo da máquina a partir de uma linha. Cada leitura é um comando
+# curto, e a espera entre elas vem do próprio tempo de ida e volta (~5 s).
+_ler_arquivo() {
+  local id="$1" arquivo="$2" desde="$3"
+  local cmd
+  cmd=$(aws ssm send-command --region "$REGIAO" --instance-ids "$id" \
+    --document-name "AWS-RunShellScript" \
+    --parameters "commands=[\"tail -n +$desde $arquivo 2>/dev/null || true\"]" \
+    --query "Command.CommandId" --output text 2>/dev/null) || return 0
+  aws ssm wait command-executed --command-id "$cmd" --instance-id "$id" --region "$REGIAO" 2>/dev/null || true
+  local saida
+  saida=$(aws ssm get-command-invocation --command-id "$cmd" --instance-id "$id" \
+    --region "$REGIAO" --query "StandardOutputContent" --output text 2>/dev/null || true)
+  [ "$saida" = "None" ] && saida=""
+  printf '%s' "$saida"
 }
 
 # A máquina já passou pela preparação?
