@@ -23,6 +23,26 @@ terraform init
 terraform apply
 ```
 
+## Preparar a máquina
+
+Instala tudo que a aplicação precisa: Node, ambiente Python com o PyTorch da
+imagem, código do projeto, arquivos do Git LFS, interface compilada, Caddy,
+serviço da API e o modelo.
+
+```bash
+./medassist.sh preparar --indexar --treinar
+```
+
+| Opção | O que faz | Tempo |
+|---|---|---|
+| (nenhuma) | Sobe a aplicação com o adapter publicado | ~10 min |
+| `--indexar` | Constrói o índice do RAG com 10 mil bulas | +10 min |
+| `--treinar` | Treina o adapter com os dados internos e usa esse | +5 min |
+| `--mock` | Não baixa modelo: respostas sintéticas | ~8 min |
+
+O script é idempotente: pode rodar de novo. Para o antes e depois do
+fine-tuning, rode sem `--treinar`, teste, e depois com `--treinar`.
+
 ## Uso no dia a dia
 
 ```bash

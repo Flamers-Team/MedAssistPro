@@ -7,6 +7,8 @@
 #   ./medassist.sh conectar    abre o terminal pelo Session Manager
 #   ./medassist.sh acesso ...  quem pode abrir o site (CIDR), ex.: acesso 189.1.2.3/32
 #   ./medassist.sh publico     libera o site para a internet
+#   ./medassist.sh preparar    instala e configura tudo na máquina (aceita --indexar, --treinar, --mock)
+#   ./medassist.sh logs        últimas linhas do serviço da API
 #
 # Usa o seu login do SSO. Se expirar: aws sso login --profile selvs
 set -euo pipefail
@@ -59,6 +61,36 @@ case "${1:-status}" in
     aws ssm start-session --target "$(_id)" --region "$REGIAO"
     ;;
 
+  preparar)
+    shift
+    ID="$(_id)"
+    echo "Enviando a preparação para $ID. Pode levar de 10 a 40 minutos, conforme as opções."
+    B64=$(base64 -w0 "$DIR/preparar_maquina.sh")
+    CMD=$(aws ssm send-command --region "$REGIAO" --instance-ids "$ID" \
+      --document-name "AWS-RunShellScript" --timeout-seconds 7200 \
+      --parameters "commands=[\"echo $B64 | base64 -d > /root/preparar_maquina.sh\",\"chmod +x /root/preparar_maquina.sh\",\"/root/preparar_maquina.sh $*\"]" \
+      --query "Command.CommandId" --output text)
+    echo "comando: $CMD"
+    until aws ssm wait command-executed --command-id "$CMD" --instance-id "$ID" --region "$REGIAO" 2>/dev/null; do
+      ESTADO=$(aws ssm get-command-invocation --command-id "$CMD" --instance-id "$ID" --region "$REGIAO" --query "Status" --output text)
+      echo "  ... $ESTADO"
+      [ "$ESTADO" = "InProgress" ] || break
+    done
+    aws ssm get-command-invocation --command-id "$CMD" --instance-id "$ID" --region "$REGIAO" \
+      --query "StandardOutputContent" --output text | tail -40
+    ;;
+
+  logs)
+    ID="$(_id)"
+    CMD=$(aws ssm send-command --region "$REGIAO" --instance-ids "$ID" \
+      --document-name "AWS-RunShellScript" \
+      --parameters 'commands=["journalctl -u medassist-api -n 40 --no-pager"]' \
+      --query "Command.CommandId" --output text)
+    aws ssm wait command-executed --command-id "$CMD" --instance-id "$ID" --region "$REGIAO" 2>/dev/null
+    aws ssm get-command-invocation --command-id "$CMD" --instance-id "$ID" --region "$REGIAO" \
+      --query "StandardOutputContent" --output text
+    ;;
+
   acesso)
     shift
     [ $# -gt 0 ] || { echo "Informe ao menos um CIDR. Ex.: ./medassist.sh acesso 189.1.2.3/32" >&2; exit 1; }
@@ -71,7 +103,7 @@ case "${1:-status}" in
     ;;
 
   *)
-    sed -n '2,14p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    sed -n '2,16p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
     exit 1
     ;;
 esac

@@ -20,7 +20,7 @@ medassist.ia4.dev {
 
 	# Interface React
 	handle {
-		root * /opt/medassist/frontend/dist
+		root * /opt/medassist/app/frontend/dist
 		try_files {path} /index.html
 		file_server
 	}
