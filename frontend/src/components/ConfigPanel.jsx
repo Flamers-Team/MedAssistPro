@@ -4,7 +4,7 @@ const systemInfo = [
   ['Banco', 'audit.db'],
   ['Documentos', 'data/documents'],
   ['Frontend', 'React + Vite'],
-  ['GitHub', 'Flamers-Team/Techchalleng3'],
+  ['GitHub', 'Flamers-Team/MedAssistPro'],
 ];
 
 export default function ConfigPanel() {

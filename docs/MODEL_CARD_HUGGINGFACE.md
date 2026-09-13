@@ -36,7 +36,7 @@ The model was fine-tuned as part of the **Tech Challenge FIAP - Phase 3** (Final
 
 ## Model Sources
 
-- **Repository (GitHub):** https://github.com/Flamers-Team/Techchalleng3
+- **Repository (GitHub):** https://github.com/Flamers-Team/MedAssistPro
 - **Base model paper:** BioMistral: A Collection of Biomedical Large Language Models (https://arxiv.org/abs/2402.10373)
 
 ## Uses
@@ -255,7 +255,7 @@ Flamers Team (FIAP Tech Challenge Phase 3)
 
 ## Model Card Contact
 
-https://github.com/Flamers-Team/Techchalleng3
+https://github.com/Flamers-Team/MedAssistPro
 
 ## Framework versions
 

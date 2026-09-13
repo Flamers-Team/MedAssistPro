@@ -36,7 +36,7 @@ pipeline_tag: text-generation
 > **Última atualização**: 08/09/2026 (atualizado — patches Colab + setup_data_colab.py)
 >
 > **Equipe**: Flamers Team (FIAP)
-> **Organização**: https://github.com/Flamers-Team/Techchalleng3
+> **Organização**: https://github.com/Flamers-Team/MedAssistPro
 > **Modelo publicado**: https://huggingface.co/michelleAnogueira/biomistral-medquad-lora
 
 ---
@@ -427,7 +427,7 @@ Arquivo: `src/llm/assistente_traduzido.py`
 ### 7.1. Estrutura do Repositório
 
 ```
-Techchalleng3/                          (GitHub: Flamers-Team/Techchalleng3)
+MedAssistPro/                           (GitHub: Flamers-Team/MedAssistPro)
 ├── README.md                            Documentação principal
 ├── .gitignore                           Proteção contra dados sensíveis
 ├── .gitattributes                       Git LFS para datasets grandes
@@ -529,7 +529,7 @@ Techchalleng3/                          (GitHub: Flamers-Team/Techchalleng3)
 | 11 | 15 testes de generalização | ✅ | `test_generalizacao.json` |
 | 12 | Comparação FINE-TUNED vs BASE | ✅ | `notebooks/02_finetuning.ipynb` SEÇÃO 13 |
 | 13 | Script de tradução PT-BR ↔ EN | ✅ | `src/llm/assistente_traduzido.py` |
-| 14 | Repositório GitHub (público) | ✅ | `Flamers-Team/Techchalleng3` |
+| 14 | Repositório GitHub (público) | ✅ | `Flamers-Team/MedAssistPro` |
 | 15 | 3 agentes LangGraph | ✅ | `src/agents/` |
 | 16 | Orquestração LangGraph | ✅ | `src/graph/` |
 | 17 | Logging SQLite + decorador | ✅ | `src/logging/` |
@@ -614,7 +614,7 @@ Techchalleng3/                          (GitHub: Flamers-Team/Techchalleng3)
 
 ## 11. Contatos e Recursos
 
-- **Repositório**: https://github.com/Flamers-Team/Techchalleng3
+- **Repositório**: https://github.com/Flamers-Team/MedAssistPro
 - **Branch principal**: `main`
 - **Modelo HF**: https://huggingface.co/michelleAnogueira/biomistral-medquad-lora
 - **Space HF**: https://huggingface.co/spaces/michelleAnogueira/techchalleng3-demo
@@ -734,8 +734,8 @@ npm run dev -- --host 127.0.0.1 --port 3000
 
 **Caminhos importantes**:
 - Modelo fine-tuned: `/content/drive/MyDrive/techchallenge_fase3/biomistral-medquad-lora/`
-- Modelo copiado: `/content/Techchalleng3/biomistral-medquad-lora/`
-- ChromaDB: `/content/Techchalleng3/data/processed/chroma_index/`
+- Modelo copiado: `/content/MedAssistPro/biomistral-medquad-lora/`
+- ChromaDB: `/content/MedAssistPro/data/processed/chroma_index/`
 
 ---
 

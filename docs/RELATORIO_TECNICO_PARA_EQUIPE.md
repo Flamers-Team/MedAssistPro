@@ -17,7 +17,7 @@ Este projeto foi desenvolvido em equipe por alunos da FIAP, sem hierarquia forma
 ---
   
 **Organização**: Flamers Team  
-**Repositório**: https://github.com/Flamers-Team/Techchalleng3 (branch `main`)
+**Repositório**: https://github.com/Flamers-Team/MedAssistPro (branch `main`)
 **Data**: Agosto 2026  
 **Status**: ✅ Fine-tuning concluído, modelo validado. Pendente: deploy/demo.
 
@@ -610,7 +610,7 @@ class AssistenteTraduzido:
 ### 7.1. Estrutura do Repositório
 
 ```
-Techchalleng3/                          (GitHub: Flamers-Team/Techchalleng3)
+MedAssistPro/                           (GitHub: Flamers-Team/MedAssistPro)
 ├── README.md                            Documentação principal
 ├── .gitignore                           Proteção contra dados sensíveis
 ├── .gitattributes                       Git LFS para datasets grandes
@@ -698,7 +698,7 @@ Techchalleng3/                          (GitHub: Flamers-Team/Techchalleng3)
 | 11 | 15 testes de generalização | ✅ | `test_generalizacao.json` |
 | 12 | Comparação FINE-TUNED vs BASE | ✅ | `notebooks/02_finetuning.ipynb` SEÇÃO 13 |
 | 13 | Script de tradução PT-BR ↔ EN | ✅ | `src/llm/assistente_traduzido.py` |
-| 14 | Repositório GitHub (privado) | ✅ | `Flamers-Team/Techchalleng3` |
+| 14 | Repositório GitHub (privado) | ✅ | `Flamers-Team/MedAssistPro` |
 | 15 | Git LFS para datasets grandes | ✅ | `.gitattributes` |
 | 16 | 3 agentes LangGraph | ✅ | `src/agents/` |
 | 17 | Orquestração LangGraph | ✅ | `src/graph/` |
@@ -782,7 +782,7 @@ Techchalleng3/                          (GitHub: Flamers-Team/Techchalleng3)
 
 ## 11. Contatos e Recursos
 
-- **Repositório**: https://github.com/Flamers-Team/Techchalleng3
+- **Repositório**: https://github.com/Flamers-Team/MedAssistPro
 - **Branch principal**: `main`
 - **Issues/bugs**: abrir no GitHub Issues do repo
 - **Documentação adicional**: `docs/TECHCHALLENGE_FASE3_PROJETO_COMPLETO.docx`
@@ -884,8 +884,8 @@ npm run dev -- --host 127.0.0.1 --port 3000
 
 **Caminhos importantes**:
 - Modelo fine-tuned: `/content/drive/MyDrive/techchallenge_fase3/biomistral-medquad-lora/`
-- Modelo copiado: `/content/Techchalleng3/biomistral-medquad-lora/`
-- ChromaDB: `/content/Techchalleng3/data/processed/chroma_index/`
+- Modelo copiado: `/content/MedAssistPro/biomistral-medquad-lora/`
+- ChromaDB: `/content/MedAssistPro/data/processed/chroma_index/`
 
 ---
 
