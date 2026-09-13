@@ -29,7 +29,8 @@ MedAssistPro/
 │       ├── llm/                    # Cliente do modelo + tradução
 │       ├── rag/                    # Retriever + indexação ChromaDB
 │       ├── logging/                # Auditoria (SQLite)
-│       ├── docs/                   # Geração de documentos (PDF)
+│       ├── infra/                          # Terraform, scripts e políticas do ambiente AWS
+├── docs/                   # Geração de documentos (PDF)
 │       └── data/                   # Pipeline de dados
 │           ├── 01_anonimizar.py        # Anonimização com regex
 │           ├── 02_normalizar_e_split.py # Normalização + train/val/test
@@ -71,9 +72,45 @@ python backend/src/data/03_validar_qualidade.py
 
 A branch `main` é a única branch ativa. Todo o código completo está nela.
 
+## ☁️ Ambiente na AWS (GPU)
+
+O assistente roda com o modelo real numa máquina com GPU na AWS, em
+`https://medassist.ia4.dev`. A infraestrutura está em [`infra/`](infra/), como
+código, e a operação do dia a dia é feita por um script ou pela esteira no
+GitHub.
+
+```bash
+cd infra && terraform apply     # cria a máquina (uma vez)
+./medassist.sh --ligar          # liga e, na primeira vez, instala tudo
+./medassist.sh --indexar-rag    # índice do RAG com 10 mil bulas
+./medassist.sh --treinar        # treina com os dados internos
+./medassist.sh --desligar       # sempre, ao terminar
+```
+
+Pela esteira: aba **Actions**, fluxo **MedAssist**, botão **Run workflow**. As
+mesmas ações estão lá, e cada execução termina mostrando a posição do ambiente.
+
+Detalhes, custo e limites em [`docs/AMBIENTE_AWS.md`](docs/AMBIENTE_AWS.md).
+
+## 🧠 Modelos
+
+| Nome | O que é |
+|---|---|
+| `michelleAnogueira/biomistral-medquad-lora` | Treinado com o MedQuAD. É o ponto de partida |
+| `biomistral-medassist-lora` | Treinado com MedQuAD mais os dados internos do hospital. É o que o assistente usa |
+
+O segundo é gerado por [`backend/src/data/05_treinar_adapter.py`](backend/src/data/05_treinar_adapter.py)
+a partir do dataset em [`data/raw/dados_internos_hospital.jsonl`](data/raw/dados_internos_hospital.jsonl),
+criado por [`backend/src/data/00_gerar_dados_internos.py`](backend/src/data/00_gerar_dados_internos.py)
+com protocolos do hospital, perguntas frequentes de médicos e modelos de laudo,
+receita e procedimento. Conteúdo sintético, sem validação clínica.
+
+A comparação entre os dois está na seção 5.6 do
+[relatório técnico](docs/RELATORIO_TECNICO_PARA_EQUIPE.md).
+
 ## 📋 Requisitos Atendidos
 
-- [x] Fine-tuning de LLM com dados médicos (BioMistral-7B + MedQuAD)
+- [x] Fine-tuning de LLM com dados médicos (BioMistral-7B + MedQuAD + dados internos do hospital)
 - [x] Pipeline de preprocessing + anonimização + curadoria
 - [x] Assistente LangChain + LangGraph
 - [x] HITL obrigatório (validação humana)
