@@ -35,8 +35,8 @@ INSTALAÇÃO
                     a usar o modelo novo (~5 min)
 
 MODELO QUE O SITE USA
-  A troca leva segundos. A primeira consulta depois dela demora ~2 min, porque
-  o modelo é carregado.
+  A troca reinicia a API, que leva ~2 min carregando o modelo. Faça a troca
+  antes de começar a gravar.
 
   --modelo biomistral-medquad-lora
                     treinado só com MedQuAD, e publicado no HuggingFace por
@@ -67,7 +67,8 @@ SEQUÊNCIA PARA GRAVAR O ANTES E O DEPOIS DO FINE-TUNING
   ./medassist.sh --indexar-rag        # busca em bulas ativa, fora da gravação
   ./medassist.sh --modelo biomistral-medquad-lora   # estado anterior ao treino
   ... grave a consulta: é o ANTES
-  ./medassist.sh --treinar            # 3 min, dá para filmar a perda caindo
+  ./medassist.sh --treinar            # 3 min de treino, e já deixa o modelo
+                                      # novo carregado e aquecido
   ... repita a mesma consulta: é o DEPOIS
   Para regravar o ANTES, volte com --modelo biomistral-medquad-lora.
 

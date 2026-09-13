@@ -156,6 +156,21 @@ systemctl daemon-reload
 systemctl enable --now medassist-api >/dev/null 2>&1
 systemctl restart medassist-api
 
+# Aquecimento: espera o modelo carregar e dispara uma consulta, para que os
+# ~2 minutos de carga aconteçam aqui, e não na primeira consulta de quem usar.
+etapa "Aquecendo o modelo"
+if curl -s --retry 60 --retry-delay 5 --retry-all-errors --max-time 600 \
+     -o /dev/null http://127.0.0.1:8000/health; then
+  echo "API respondendo. Disparando consulta de aquecimento..."
+  curl -s --max-time 900 -o /dev/null -X POST http://127.0.0.1:8000/api/consulta \
+    -H 'Content-Type: application/json' \
+    -d '{"relato":"Paciente com febre e tosse ha tres dias, sem dispneia."}' \
+    && echo "Modelo carregado e respondendo." \
+    || echo "Aviso: a consulta de aquecimento falhou; o site sobe mesmo assim."
+else
+  echo "Aviso: a API não respondeu a tempo. Veja: ./medassist.sh --logs"
+fi
+
 echo
 echo "=================================================="
 echo "PRONTO"
@@ -163,4 +178,4 @@ echo "  endereço: https://$DOMINIO"
 echo "  modelo:   $MODELO (mock=$MOCK)"
 echo "  login:    medico / demo123"
 echo "=================================================="
-echo "A primeira chamada demora ~2 min, porque a API carrega o modelo."
+echo "O modelo já está carregado: a próxima consulta responde direto."
