@@ -20,7 +20,8 @@ MÁQUINA
   --logs            últimas linhas do serviço da API
 
 INSTALAÇÃO
-  --preparar        instala e configura tudo na máquina: pacotes, Node, Caddy,
+  --preparar        já restringe o site ao seu IP e instala tudo na máquina:
+                    pacotes, Node, Caddy,
                     código do projeto, arquivos do Git LFS, ambiente Python,
                     interface compilada, serviço da API e download do modelo.
                     É o passo obrigatório depois de criar a máquina, e pode ser
@@ -35,15 +36,19 @@ MODO DO SITE (muda o comportamento do site publicado)
   --ativar-gpu      respostas do modelo real, na GPU. Primeira chamada leva
                     cerca de 2 minutos, porque o modelo é carregado.
 
-ACESSO AO SITE
-  --publico         libera o site para a internet
-  --acesso CIDR     restringe o site a um ou mais IPs, ex.: --acesso 189.1.2.3/32
+QUEM PODE ABRIR O SITE (regra única, sempre substituída)
+  --publico         libera para a internet inteira, apagando as regras de IP
+  --ip [CIDR...]    libera só os IPs informados, apagando a regra pública e as
+                    regras anteriores. Sem argumento, usa o IP de quem está
+                    rodando o comando. Ex.: --ip   ou   --ip 200.1.2.0/24
 
 EXEMPLOS
   ./medassist.sh --status
   ./medassist.sh --preparar --indexar-rag --treinar     # máquina nova, completa
   ./medassist.sh --ativar-mock                          # site sem GPU
   ./medassist.sh --ativar-gpu                           # site com o modelo real
+  ./medassist.sh --ip                                   # só o seu IP abre o site
+  ./medassist.sh --publico                              # volta a liberar geral
   ./medassist.sh --desligar
 
 Usa o seu login do SSO. Se expirar: aws sso login --profile selvs
@@ -75,6 +80,21 @@ _remoto() {
     --query "StandardOutputContent" --output text | tail -40
 }
 
+# IP público de quem está rodando o comando.
+_meu_ip() {
+  curl -s --max-time 10 https://checkip.amazonaws.com | tr -d '[:space:]'
+}
+
+# Grava a regra de acesso e aplica. Sempre substitui a regra anterior:
+# rodar de novo com outro valor apaga o que existia antes (idempotente).
+_regra_acesso() {
+  local lista="$1" descricao="$2"
+  echo "$descricao"
+  printf 'ips_liberados = %s\n' "$lista" > "$DIR/acesso.auto.tfvars"
+  terraform -chdir="$DIR" apply -auto-approve -var="ips_liberados=$lista" | tail -3
+  echo "regra atual: $lista"
+}
+
 # Troca o modo do serviço da API (mock ou GPU) e reinicia.
 _modo() {
   local mock="$1" descricao="$2"
@@ -95,7 +115,7 @@ while [ $# -gt 0 ]; do
     --preparar)     PREPARAR=1 ;;
     --indexar-rag)  PREPARAR=1; OPCOES_PREPARO="$OPCOES_PREPARO --indexar-rag" ;;
     --treinar)      PREPARAR=1; OPCOES_PREPARO="$OPCOES_PREPARO --treinar" ;;
-    --acesso)       shift; while [ $# -gt 0 ] && [[ "$1" != --* ]]; do IPS+=("$1"); shift; done; ACOES+=("--acesso"); continue ;;
+    --ip)           shift; while [ $# -gt 0 ] && [[ "$1" != --* ]]; do IPS+=("$1"); shift; done; ACOES+=("--ip"); continue ;;
     *) echo "opção desconhecida: $1" >&2; echo; ajuda; exit 1 ;;
   esac
   shift
@@ -107,6 +127,16 @@ for a in ${ACOES[@]+"${ACOES[@]}"}; do
 done
 
 if [ "$PREPARAR" = "1" ]; then
+  # A preparação já fecha o site no IP de quem está preparando, a menos que
+  # tenham sido pedidas outras regras na mesma chamada.
+  if ! printf '%s\n' ${ACOES[@]+"${ACOES[@]}"} | grep -qE '^--(ip|publico)$'; then
+    MEU_IP=$(_meu_ip)
+    if [ -n "$MEU_IP" ]; then
+      _regra_acesso "[\"$MEU_IP/32\"]" "Fechando o site no seu IP ($MEU_IP) durante a preparação..."
+      echo "Para liberar a todos depois: ./medassist.sh --publico"
+    fi
+  fi
+
   B64=$(base64 -w0 "$DIR/preparar_maquina.sh")
   _remoto "Preparando a máquina$OPCOES_PREPARO. Pode levar de 10 a 30 minutos." \
     "[\"echo $B64 | base64 -d > /root/preparar_maquina.sh\",\"chmod +x /root/preparar_maquina.sh\",\"/root/preparar_maquina.sh$OPCOES_PREPARO\"]"
@@ -138,11 +168,16 @@ for acao in ${ACOES[@]+"${ACOES[@]}"}; do
     --logs)     _remoto "Logs da API:" '["journalctl -u medassist-api -n 40 --no-pager"]' ;;
     --ativar-mock) _modo 1 "Trocando o site para modo mock..." ;;
     --ativar-gpu)  _modo 0 "Trocando o site para o modelo real na GPU..." ;;
-    --publico)  terraform -chdir="$DIR" apply -auto-approve -var='ips_liberados=["0.0.0.0/0"]' ;;
-    --acesso)
-      [ ${#IPS[@]} -gt 0 ] || { echo "Informe ao menos um CIDR. Ex.: --acesso 189.1.2.3/32" >&2; exit 1; }
+    --publico) _regra_acesso '["0.0.0.0/0"]' "Liberando o site para a internet inteira..." ;;
+    --ip)
+      if [ ${#IPS[@]} -eq 0 ]; then
+        MEU_IP=$(_meu_ip)
+        [ -n "$MEU_IP" ] || { echo "Não consegui descobrir seu IP. Informe manualmente: --ip 189.1.2.3/32" >&2; exit 1; }
+        IPS=("$MEU_IP/32")
+        echo "IP detectado: $MEU_IP"
+      fi
       LISTA=$(printf '"%s",' "${IPS[@]}"); LISTA="[${LISTA%,}]"
-      terraform -chdir="$DIR" apply -auto-approve -var="ips_liberados=$LISTA"
+      _regra_acesso "$LISTA" "Restringindo o site aos IPs informados..."
       ;;
   esac
 done

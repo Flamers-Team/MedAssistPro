@@ -66,8 +66,13 @@ Desligue sempre ao terminar. O alarme de ociosidade é rede de proteção, não 
 O terminal é pelo Session Manager, que exige login no SSO da AWS. O site em
 `medassist.ia4.dev` é público e usa o login do próprio assistente.
 
-Para restringir o site a um IP: `./medassist.sh --acesso 189.1.2.3/32`.
-Para liberar de novo: `./medassist.sh --publico`.
+Quem pode abrir o site é uma regra única, sempre substituída:
+
+- `./medassist.sh --ip` restringe ao IP de quem rodou o comando.
+- `./medassist.sh --ip 200.1.2.0/24` restringe às faixas informadas.
+- `./medassist.sh --publico` libera para a internet inteira.
+
+A preparação já fecha o site no seu IP. Para a demonstração, rode `--publico`.
 
 ## Apagar tudo no fim do projeto
 
