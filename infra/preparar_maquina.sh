@@ -28,7 +28,7 @@ MOCK=0
 
 while [ $# -gt 0 ]; do
   case "$1" in
-    --indexar) INDEXAR=1 ;;
+    --indexar-rag|--indexar) INDEXAR=1 ;;
     --treinar) TREINAR=1 ;;
     --mock)    MOCK=1 ;;
     --modelo)  MODELO="$2"; shift ;;
@@ -60,7 +60,9 @@ echo "node $(node --version) | caddy $(caddy version | head -1)"
 etapa "2/8 Código do projeto"
 mkdir -p "$RAIZ"
 if [ -d "$APP/.git" ]; then
-  su - ubuntu -c "git -C $APP pull --ff-only"
+  # Sincronização forçada: a máquina é descartável, o que vale é o repositório.
+  # Limpa só as pastas de código, preservando data/ (índice do RAG, modelos).
+  su - ubuntu -c "cd $APP && git fetch --depth 1 origin main && git reset --hard FETCH_HEAD && git clean -fdq -- backend frontend infra notebooks scripts docs"
 else
   su - ubuntu -c "git clone --depth 1 $REPO $APP"
 fi
@@ -85,6 +87,14 @@ etapa "5/8 Caddy"
 sed "s|medassist.ia4.dev|$DOMINIO|g" "$APP/infra/Caddyfile" > /etc/caddy/Caddyfile
 systemctl reload caddy 2>/dev/null || systemctl restart caddy
 echo "caddy servindo https://$DOMINIO"
+
+# Se já existe um adapter treinado nesta máquina, ele tem preferência sobre o
+# publicado — a não ser que o usuário tenha passado outro em --modelo.
+if [ "$TREINAR" = "0" ] && [ "$MODELO" = "michelleAnogueira/biomistral-medquad-lora" ] \
+   && [ -f "$ADAPTER_TREINADO/adapter_config.json" ]; then
+  MODELO="$ADAPTER_TREINADO"
+  echo "adapter treinado encontrado nesta máquina: usando $MODELO"
+fi
 
 etapa "6/8 Modelo"
 if [ "$MOCK" = "1" ]; then

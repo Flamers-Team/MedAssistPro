@@ -25,31 +25,30 @@ terraform apply
 
 ## Preparar a máquina
 
-Instala tudo que a aplicação precisa: Node, ambiente Python com o PyTorch da
-imagem, código do projeto, arquivos do Git LFS, interface compilada, Caddy,
-serviço da API e o modelo.
-
 ```bash
-./medassist.sh preparar --indexar --treinar
+./medassist.sh --preparar --indexar-rag --treinar
 ```
 
 | Opção | O que faz | Tempo |
 |---|---|---|
-| (nenhuma) | Sobe a aplicação com o adapter publicado | ~10 min |
-| `--indexar` | Constrói o índice do RAG com 10 mil bulas | +10 min |
-| `--treinar` | Treina o adapter com os dados internos e usa esse | +5 min |
-| `--mock` | Não baixa modelo: respostas sintéticas | ~8 min |
+| `--preparar` | Pacotes, Node, Caddy, código, Git LFS, ambiente Python, interface, serviço da API e modelo | ~10 min |
+| `--indexar-rag` | Índice do RAG com 10 mil bulas | +10 min |
+| `--treinar` | Gera o dataset interno, anonimiza, treina o adapter e passa a usá-lo | +5 min |
 
-O script é idempotente: pode rodar de novo. Para o antes e depois do
-fine-tuning, rode sem `--treinar`, teste, e depois com `--treinar`.
+O script é idempotente. Para comparar o antes e o depois do fine-tuning, rode
+sem `--treinar`, teste o site, e depois rode com `--treinar`.
 
 ## Uso no dia a dia
 
 ```bash
-./medassist.sh status      # estado, IP e endereço
-./medassist.sh ligar       # liga e espera ficar pronta
-./medassist.sh desligar    # desliga: para a cobrança por hora
-./medassist.sh conectar    # terminal dentro da máquina
+./medassist.sh                 # mostra todas as opções
+./medassist.sh --status        # estado, endereço e IP
+./medassist.sh --ligar         # liga
+./medassist.sh --desligar      # desliga: para a cobrança por hora
+./medassist.sh --conectar      # terminal dentro da máquina
+./medassist.sh --logs          # logs da API
+./medassist.sh --ativar-mock   # site responde sem GPU, com texto sintético
+./medassist.sh --ativar-gpu    # site responde com o modelo real
 ```
 
 ## Custo
@@ -67,8 +66,8 @@ Desligue sempre ao terminar. O alarme de ociosidade é rede de proteção, não 
 O terminal é pelo Session Manager, que exige login no SSO da AWS. O site em
 `medassist.ia4.dev` é público e usa o login do próprio assistente.
 
-Para restringir o site a um IP: `./medassist.sh acesso 189.1.2.3/32`.
-Para liberar de novo: `./medassist.sh publico`.
+Para restringir o site a um IP: `./medassist.sh --acesso 189.1.2.3/32`.
+Para liberar de novo: `./medassist.sh --publico`.
 
 ## Apagar tudo no fim do projeto
 
