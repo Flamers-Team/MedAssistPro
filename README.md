@@ -22,29 +22,31 @@ Assistente médico que combina:
 ```
 MedAssistPro/
 ├── backend/                        # API FastAPI (Python)
-│   └── src/
-│       ├── api/                    # App FastAPI + rotas
-│       ├── agents/                 # Triagem, síntese, validação
-│       ├── graph/                  # Workflow LangGraph
-│       ├── llm/                    # Cliente do modelo + tradução
-│       ├── rag/                    # Retriever + indexação ChromaDB
-│       ├── logging/                # Auditoria (SQLite)
-│       ├── infra/                          # Terraform, scripts e políticas do ambiente AWS
-├── docs/                   # Geração de documentos (PDF)
-│       └── data/                   # Pipeline de dados
-│           ├── 01_anonimizar.py        # Anonimização com regex
-│           ├── 02_normalizar_e_split.py # Normalização + train/val/test
-│           └── 03_validar_qualidade.py # Validação qualitativa
+│   ├── src/
+│   │   ├── api/                    # App FastAPI + rotas
+│   │   ├── agents/                 # Triagem, síntese, validação
+│   │   ├── graph/                  # Workflow LangGraph, nós e tools
+│   │   ├── llm/                    # Cliente do modelo + tradução
+│   │   ├── rag/                    # Retriever + indexação ChromaDB
+│   │   ├── logging/                # Auditoria (SQLite)
+│   │   ├── docs/                   # Geração de documentos (PDF)
+│   │   └── data/                   # Pipeline de dados e treino
+│   │       ├── 00_gerar_dados_internos.py  # Dataset interno do hospital
+│   │       ├── 01_anonimizar.py            # Anonimização com regex
+│   │       ├── 02_normalizar_e_split.py    # Normalização + train/val/test
+│   │       ├── 03_validar_qualidade.py     # Validação qualitativa
+│   │       ├── 05_treinar_adapter.py       # Treino do adapter
+│   │       ├── 06_avaliar_adapter.py       # Perplexidade
+│   │       └── dados_internos/             # Protocolos, dúvidas e modelos
+│   └── tests/                      # pytest
 ├── frontend/                       # UI React + Vite
-│   └── src/
+├── infra/                          # Ambiente AWS: Terraform, scripts e IAM
+├── .github/workflows/              # Esteira de operação do ambiente
 ├── notebooks/
-│   └── 02_finetuning.ipynb         # Notebook Colab Pro (A100)
-├── docs/
-│   └── TECHCHALLENGE_FASE3_PROJETO_COMPLETO.docx
-├── data/                           # ⚠️ Não versionado (datasets grandes)
-│   ├── raw/                        # MedQuAD bruto
-│   └── processed/                  # JSONL anonimizados
-├── .gitignore                      # Proteção contra modelos/datasets grandes
+│   ├── 02_finetuning.ipynb         # Fine-tuning no Colab
+│   └── rodarcolab.ipynb            # Demo no Colab
+├── docs/                           # Relatórios e manuais
+├── data/                           # Datasets (grandes não versionados)
 └── README.md
 ```
 
