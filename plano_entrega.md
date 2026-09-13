@@ -2,13 +2,39 @@
 
 Somente o que o enunciado exige. O percentual indica quanto do item já está pronto no `main` em 11/09/2026. Cada passo traz, marcado como (bloqueante), o motivo pelo qual bloqueia a entrega, seguido da citação do enunciado que sustenta isso.
 
-**Progresso geral estimado: 94%** (seções 2 e 3 concluídas; README com instruções completas e diagrama do fluxo LangChain adicionados)
+**Progresso geral estimado: 96%**
+
+## Situação de cada item
+
+| | Item | Estado |
+|---|---|---|
+| [x] | Fine-tuning com protocolos, perguntas de médicos e modelos de laudo/receita | 100% |
+| [x] | Preprocessing, anonimização e curadoria dos dados | 100% |
+| [x] | Pipeline LangChain integrando a LLM customizada | 100% |
+| [x] | Consultas em base estruturada de prontuários | 100% |
+| [x] | Contextualizar as respostas com dados do paciente | 100% |
+| [x] | Nunca prescrever sem validação humana | 100% |
+| [x] | Logging detalhado para rastreamento e auditoria | 100% |
+| [x] | Explainability: indicar a fonte da informação | 100% |
+| [x] | Projeto modularizado em Python | 100% |
+| [x] | Instruções completas no README | 100% |
+| [x] | Repositório: pipeline de fine-tuning | 100% |
+| [x] | Repositório: integração com LangChain | 100% |
+| [x] | Repositório: fluxos do LangGraph | 100% |
+| [x] | Dataset anonimizado ou exemplo de dados sintéticos | 100% |
+| [x] | Relatório: explicação do processo de fine-tuning | 100% |
+| [ ] | Relatório: descrição do assistente criado | 70% |
+| [x] | Relatório: diagrama do fluxo LangChain | 100% |
+| [x] | Relatório: avaliação do modelo e análise dos resultados | 100% |
+| [ ] | Vídeo de até 15 minutos | 0% |
+
+Faltam dois itens, e nenhum deles é do fine-tuning.
 
 **Como ler as citações:** referem-se ao enunciado oficial, [8IADT - Fase 3 - Tech challenge.pdf](8IADT%20-%20Fase%203%20-%20Tech%20challenge.pdf), versionado na raiz do repositório. A linha é contada de cima para baixo, sem contar o cabeçalho "Tech Challenge Página X de 5". Na página 4, cada linha visual da tabela de datasets conta como uma linha.
 
 ## 1. Fine-tuning de LLM com dados médicos internos
 
-* Fine-tuning de LLM com protocolos, perguntas de médicos e modelos de laudo/receita (95%)
+* ~~Fine-tuning de LLM com protocolos, perguntas de médicos e modelos de laudo/receita~~ (100%)
    * O adapter atual foi treinado só com MedQuAD, que são perguntas gerais de saúde. Os três tipos de dado pedidos não estão no treino.
       > (pág 2, linhas 21-25) "Realizar o fine-tuning de um modelo LLM (como LLaMA, Falcon ou um outro) utilizando: Protocolos médicos do hospital; Exemplos de perguntas frequentes feitas por médicos; Modelos de laudos, receitas e procedimentos internos."
       >
@@ -31,7 +57,7 @@ Somente o que o enunciado exige. O percentual indica quanto do item já está pr
       > (bloqueante) O relatório precisa avaliar o modelo entregue, e o modelo entregue passa a ser o novo adapter.
       >
       > (pág 4, linha 3) "Avaliação do modelo e análise dos resultados."
-   * ~~Apontar `LLM_MODEL` para o novo adapter.~~ Feito na instância. Falta publicar o adapter fora dela.
+   * ~~Apontar `LLM_MODEL` para o novo adapter.~~ Feito: o assistente usa `biomistral-medassist-lora`, treinado na máquina da AWS.
       > (bloqueante) Sem isso, o assistente continua usando o adapter antigo, que não foi treinado com os dados pedidos.
       >
       > (pág 3, linhas 2-3) "Utilizar o LangChain para: Construir um pipeline que integre a LLM customizada;"
