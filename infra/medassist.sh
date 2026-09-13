@@ -14,7 +14,8 @@ MedAssistPro — controle da máquina na AWS
 
 MÁQUINA
   --status          estado atual, endereço e IP fixo
-  --ligar           liga a máquina e espera ficar pronta
+  --ligar           liga a máquina, espera ficar pronta e, se ela ainda não
+                    tiver sido preparada, roda a preparação sozinho
   --desligar        desliga (preserva disco e IP, para a cobrança por hora)
   --conectar        abre um terminal dentro da máquina (Session Manager)
   --logs            últimas linhas do serviço da API
@@ -71,6 +72,33 @@ _remoto() {
     --query "StandardOutputContent" --output text | tail -40
 }
 
+# A máquina já passou pela preparação?
+_preparada() {
+  local id; id="$(_id)"
+  local cmd
+  cmd=$(aws ssm send-command --region "$REGIAO" --instance-ids "$id" \
+    --document-name "AWS-RunShellScript" \
+    --parameters 'commands=["test -f /etc/systemd/system/medassist-api.service && test -d /opt/medassist/app && echo sim || echo nao"]' \
+    --query "Command.CommandId" --output text 2>/dev/null) || return 1
+  aws ssm wait command-executed --command-id "$cmd" --instance-id "$id" --region "$REGIAO" 2>/dev/null || true
+  [ "$(aws ssm get-command-invocation --command-id "$cmd" --instance-id "$id" --region "$REGIAO" --query 'StandardOutputContent' --output text 2>/dev/null | tr -d '[:space:]')" = "sim" ]
+}
+
+# Roda a preparação dentro da máquina.
+_preparar() {
+  local opcoes="${1:-}"
+  if ! printf '%s\n' ${ACOES[@]+"${ACOES[@]}"} | grep -qE '^--(ip|publico)$'; then
+    MEU_IP=$(_meu_ip)
+    if [ -n "$MEU_IP" ]; then
+      _regra_acesso "[\"$MEU_IP/32\"]" "Fechando o site no seu IP ($MEU_IP)..."
+      echo "Para liberar a todos depois: ./medassist.sh --publico"
+    fi
+  fi
+  local b64; b64=$(base64 -w0 "$DIR/preparar_maquina.sh")
+  _remoto "Preparando a máquina$opcoes. Pode levar de 10 a 30 minutos." \
+    "[\"echo $b64 | base64 -d > /root/preparar_maquina.sh\",\"chmod +x /root/preparar_maquina.sh\",\"/root/preparar_maquina.sh$opcoes\"]"
+}
+
 # IP público de quem está rodando o comando.
 _meu_ip() {
   curl -s --max-time 10 https://checkip.amazonaws.com | tr -d '[:space:]'
@@ -106,21 +134,7 @@ while [ $# -gt 0 ]; do
   shift
 done
 
-if [ "$PREPARAR" = "1" ]; then
-  # A preparação já fecha o site no IP de quem está preparando, a menos que
-  # tenham sido pedidas outras regras na mesma chamada.
-  if ! printf '%s\n' ${ACOES[@]+"${ACOES[@]}"} | grep -qE '^--(ip|publico)$'; then
-    MEU_IP=$(_meu_ip)
-    if [ -n "$MEU_IP" ]; then
-      _regra_acesso "[\"$MEU_IP/32\"]" "Fechando o site no seu IP ($MEU_IP) durante a preparação..."
-      echo "Para liberar a todos depois: ./medassist.sh --publico"
-    fi
-  fi
-
-  B64=$(base64 -w0 "$DIR/preparar_maquina.sh")
-  _remoto "Preparando a máquina$OPCOES_PREPARO. Pode levar de 10 a 30 minutos." \
-    "[\"echo $B64 | base64 -d > /root/preparar_maquina.sh\",\"chmod +x /root/preparar_maquina.sh\",\"/root/preparar_maquina.sh$OPCOES_PREPARO\"]"
-fi
+[ "$PREPARAR" = "1" ] && _preparar "$OPCOES_PREPARO"
 
 for acao in ${ACOES[@]+"${ACOES[@]}"}; do
   case "$acao" in
@@ -135,6 +149,10 @@ for acao in ${ACOES[@]+"${ACOES[@]}"}; do
       aws ec2 start-instances --instance-ids "$ID" --region "$REGIAO" >/dev/null
       aws ec2 wait instance-running --instance-ids "$ID" --region "$REGIAO"
       aws ec2 wait instance-status-ok --instance-ids "$ID" --region "$REGIAO"
+      if [ "$PREPARAR" = "0" ] && ! _preparada; then
+        echo "Máquina ainda não preparada. Preparando agora..."
+        _preparar ""
+      fi
       echo "Pronta: $(terraform -chdir="$DIR" output -raw endereco)"
       echo "⚠️  Lembre de desligar ao terminar: ./medassist.sh --desligar"
       ;;
