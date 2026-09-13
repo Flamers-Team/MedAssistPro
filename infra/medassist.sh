@@ -38,12 +38,15 @@ MODELO QUE O SITE USA
   A troca leva segundos. A primeira consulta depois dela demora ~2 min, porque
   o modelo é carregado.
 
-  --modelo publicado
-                    o adapter treinado só com MedQuAD. É o "antes"
-                    michelleAnogueira/biomistral-medquad-lora
-  --modelo treinado
-                    o adapter treinado nesta máquina, com MedQuAD mais os dados
-                    internos do hospital. É o "depois"
+  --modelo biomistral-medquad-lora
+                    treinado só com MedQuAD, e publicado no HuggingFace por
+                    michelleAnogueira. É o "antes"
+  --modelo biomistral-medassist-lora
+                    treinado nesta máquina, com MedQuAD mais os dados internos
+                    do hospital. É o "depois"
+
+                    Outro valor é aceito como está, seja um repositório do
+                    HuggingFace ou um caminho dentro da máquina.
                     biomistral-medassist-lora
 
 QUEM PODE ABRIR O SITE
@@ -63,11 +66,11 @@ DIA A DIA
 SEQUÊNCIA PARA GRAVAR O ANTES E O DEPOIS DO FINE-TUNING
   ./medassist.sh --ligar              # máquina pronta e site no ar
   ./medassist.sh --indexar-rag        # busca em bulas ativa, fora da gravação
-  ./medassist.sh --modelo publicado   # garante o estado anterior ao treino
+  ./medassist.sh --modelo biomistral-medquad-lora   # estado anterior ao treino
   ... grave a consulta: é o ANTES
   ./medassist.sh --treinar            # 3 min, dá para filmar a perda caindo
   ... repita a mesma consulta: é o DEPOIS
-  Para regravar o ANTES, é só voltar com --modelo publicado.
+  Para regravar o ANTES, volte com --modelo biomistral-medquad-lora.
 
 Ligada custa cerca de US$ 0,80 por hora. Desligada, só disco e IP.
 Usa o seu login do SSO. Se expirar: aws sso login --profile selvs
@@ -156,9 +159,11 @@ while [ $# -gt 0 ]; do
     --preparar)     PREPARAR=1 ;;
     --modelo)
       case "${2:-}" in
-        publicado) MODELO_REF="michelleAnogueira/biomistral-medquad-lora" ;;
-        treinado)  MODELO_REF="/opt/medassist/biomistral-medassist-lora" ;;
-        *) echo "Use: --modelo publicado   ou   --modelo treinado" >&2; exit 1 ;;
+        biomistral-medquad-lora)   MODELO_REF="michelleAnogueira/biomistral-medquad-lora" ;;
+        biomistral-medassist-lora) MODELO_REF="/opt/medassist/biomistral-medassist-lora" ;;
+        "") echo "Informe o modelo. Ex.: --modelo biomistral-medassist-lora" >&2; exit 1 ;;
+        # Qualquer outro valor passa direto: repositório do HuggingFace ou caminho na máquina.
+        *) MODELO_REF="$2" ;;
       esac
       ACOES+=("--modelo"); shift ;;
     --indexar-rag)  EXTRAS="$EXTRAS --indexar-rag" ;;
