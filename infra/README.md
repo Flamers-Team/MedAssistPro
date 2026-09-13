@@ -32,11 +32,15 @@ terraform apply
 | Opção | O que faz | Tempo |
 |---|---|---|
 | `--preparar` | Pacotes, Node, Caddy, código, Git LFS, ambiente Python, interface, serviço da API e modelo | ~10 min |
-| `--indexar-rag` | Índice do RAG com 10 mil bulas | +10 min |
-| `--treinar` | Gera o dataset interno, anonimiza, treina o adapter e passa a usá-lo | +5 min |
+| `--indexar-rag` | Índice do RAG com 10 mil bulas | ~10 min |
+| `--treinar` | Gera o dataset interno, anonimiza, treina o adapter e passa a usá-lo | ~5 min |
 
-O script é idempotente. Para comparar o antes e o depois do fine-tuning, rode
-sem `--treinar`, teste o site, e depois rode com `--treinar`.
+O primeiro `--ligar` já roda a preparação sozinho. As duas etapas extras rodam
+isoladamente, em momentos distintos, e falham se a máquina não estiver
+preparada, em vez de instalar por conta própria.
+
+Para o antes e depois do fine-tuning: indexe o RAG, grave com o adapter
+publicado, rode `--treinar` e grave de novo.
 
 ## Uso no dia a dia
 
@@ -72,7 +76,8 @@ Quem pode abrir o site é uma regra única, sempre substituída:
 - `./medassist.sh --ip 200.1.2.0/24` restringe às faixas informadas.
 - `./medassist.sh --publico` libera para a internet inteira.
 
-A preparação já fecha o site no seu IP. Para a demonstração, rode `--publico`.
+A preparação e o `--ligar` não mexem nessa regra: quem pode abrir o site é decisão
+separada, tomada só por `--ip` e `--publico`.
 
 ## Apagar tudo no fim do projeto
 

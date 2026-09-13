@@ -21,14 +21,18 @@ MÁQUINA
   --logs            últimas linhas do serviço da API
 
 INSTALAÇÃO
-  --preparar        restringe o site ao seu IP e instala tudo na máquina:
-                    pacotes, Node, Caddy, código do projeto, arquivos do Git
-                    LFS, ambiente Python, interface compilada, serviço da API e
-                    download do modelo. É o passo obrigatório depois de criar a
-                    máquina, e pode ser repetido sem quebrar nada. (~10 min)
-  --indexar-rag     constrói o índice do RAG com 10 mil bulas (+10 min)
+  --preparar        instala e configura tudo na máquina: pacotes, Node, Caddy,
+                    código do projeto, arquivos do Git LFS, ambiente Python,
+                    interface compilada, serviço da API e download do modelo.
+                    Roda sozinho no primeiro --ligar, e pode ser repetido sem
+                    quebrar nada. (~10 min)
+  --indexar-rag     constrói o índice do RAG com 10 mil bulas (~10 min)
   --treinar         gera o dataset interno, anonimiza, treina o adapter e passa
-                    a usar o modelo novo (+5 min)
+                    a usar o modelo novo (~5 min)
+
+                    As duas exigem uma máquina já preparada e podem rodar
+                    isoladamente, em momentos distintos. Se a máquina não
+                    estiver preparada, elas falham em vez de instalar sozinhas.
 
 QUEM PODE ABRIR O SITE (regra única, sempre substituída)
   --publico         libera para a internet inteira, apagando as regras de IP
@@ -84,16 +88,10 @@ _preparada() {
   [ "$(aws ssm get-command-invocation --command-id "$cmd" --instance-id "$id" --region "$REGIAO" --query 'StandardOutputContent' --output text 2>/dev/null | tr -d '[:space:]')" = "sim" ]
 }
 
-# Roda a preparação dentro da máquina.
+# Roda a preparação dentro da máquina. Não mexe em quem pode abrir o site:
+# isso é assunto do --ip e do --publico.
 _preparar() {
   local opcoes="${1:-}"
-  if ! printf '%s\n' ${ACOES[@]+"${ACOES[@]}"} | grep -qE '^--(ip|publico)$'; then
-    MEU_IP=$(_meu_ip)
-    if [ -n "$MEU_IP" ]; then
-      _regra_acesso "[\"$MEU_IP/32\"]" "Fechando o site no seu IP ($MEU_IP)..."
-      echo "Para liberar a todos depois: ./medassist.sh --publico"
-    fi
-  fi
   local b64; b64=$(base64 -w0 "$DIR/preparar_maquina.sh")
   _remoto "Preparando a máquina$opcoes. Pode levar de 10 a 30 minutos." \
     "[\"echo $b64 | base64 -d > /root/preparar_maquina.sh\",\"chmod +x /root/preparar_maquina.sh\",\"/root/preparar_maquina.sh$opcoes\"]"
@@ -117,7 +115,7 @@ _regra_acesso() {
 [ $# -eq 0 ] && { ajuda; exit 0; }
 
 PREPARAR=0
-OPCOES_PREPARO=""
+EXTRAS=""
 ACOES=()
 IPS=()
 
@@ -126,15 +124,27 @@ while [ $# -gt 0 ]; do
     --help|-h)      ajuda; exit 0 ;;
     --status|--ligar|--desligar|--conectar|--logs|--publico) ACOES+=("$1") ;;
     --preparar)     PREPARAR=1 ;;
-    --indexar-rag)  PREPARAR=1; OPCOES_PREPARO="$OPCOES_PREPARO --indexar-rag" ;;
-    --treinar)      PREPARAR=1; OPCOES_PREPARO="$OPCOES_PREPARO --treinar" ;;
+    --indexar-rag)  EXTRAS="$EXTRAS --indexar-rag" ;;
+    --treinar)      EXTRAS="$EXTRAS --treinar" ;;
     --ip)           shift; while [ $# -gt 0 ] && [[ "$1" != --* ]]; do IPS+=("$1"); shift; done; ACOES+=("--ip"); continue ;;
     *) echo "opção desconhecida: $1" >&2; echo; ajuda; exit 1 ;;
   esac
   shift
 done
 
-[ "$PREPARAR" = "1" ] && _preparar "$OPCOES_PREPARO"
+if [ "$PREPARAR" = "1" ]; then
+  # Instalação completa, com as etapas extras no fim, se pedidas.
+  _preparar "$EXTRAS"
+elif [ -n "$EXTRAS" ]; then
+  # Etapas extras sozinhas: exigem uma máquina já preparada.
+  if ! _preparada; then
+    echo "Erro: a máquina não está preparada, então$EXTRAS não pode rodar." >&2
+    echo "Rode primeiro: ./medassist.sh --ligar   (liga e prepara)" >&2
+    echo "Ou force a instalação: ./medassist.sh --preparar" >&2
+    exit 1
+  fi
+  _preparar " --apenas$EXTRAS"
+fi
 
 for acao in ${ACOES[@]+"${ACOES[@]}"}; do
   case "$acao" in

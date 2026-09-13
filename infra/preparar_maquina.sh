@@ -7,7 +7,9 @@
 # É idempotente: pode ser rodado de novo sem quebrar nada.
 #
 # Opções:
-#   --indexar        constrói o índice do RAG (10 mil bulas, ~10 min na GPU)
+#   --apenas         pula a instalação e roda só as etapas pedidas abaixo
+#                    (exige uma máquina já preparada)
+#   --indexar-rag    constrói o índice do RAG (10 mil bulas, ~10 min na GPU)
 #   --treinar        treina o adapter com os dados internos (~3 min na GPU)
 #   --modelo <ref>   adapter a usar (padrão: o publicado no HuggingFace)
 #   --repo <url>     repositório a clonar
@@ -23,12 +25,14 @@ MODELO="${MODELO:-michelleAnogueira/biomistral-medquad-lora}"
 ADAPTER_TREINADO="$RAIZ/adapter-v2"
 INDEXAR=0
 TREINAR=0
+APENAS=0
 MOCK=0   # o modo mock existe no código (LLM_MOCK) para testes e uso sem GPU,
          # mas nesta máquina, que é só GPU, a API sobe sempre com o modelo real.
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --indexar-rag|--indexar) INDEXAR=1 ;;
+    --apenas)  APENAS=1 ;;
     --treinar) TREINAR=1 ;;
     --modelo)  MODELO="$2"; shift ;;
     --repo)    REPO="$2"; shift ;;
@@ -38,6 +42,8 @@ while [ $# -gt 0 ]; do
 done
 
 etapa() { echo; echo "=== $* ==="; }
+
+if [ "$APENAS" = "0" ]; then
 
 etapa "1/8 Pacotes do sistema"
 export DEBIAN_FRONTEND=noninteractive
@@ -99,6 +105,13 @@ etapa "6/8 Modelo"
 su - ubuntu -c "$VENV/bin/hf download BioMistral/BioMistral-7B" >/dev/null
 su - ubuntu -c "$VENV/bin/hf download $MODELO" >/dev/null 2>&1 || echo "aviso: '$MODELO' não é um repositório do HuggingFace (deve ser um caminho local)"
 echo "modelo base e adapter em cache"
+
+else
+  etapa "Modo --apenas: instalação pulada"
+  # Ainda assim sincroniza o código, para pegar dataset e scripts atualizados.
+  su - ubuntu -c "cd $APP && git fetch --depth 1 origin main && git reset --hard FETCH_HEAD && git clean -fdq -- backend frontend infra notebooks scripts docs"
+  [ -f "$ADAPTER_TREINADO/adapter_config.json" ] && [ "$TREINAR" = "0" ] && MODELO="$ADAPTER_TREINADO"
+fi
 
 etapa "7/8 RAG"
 if [ "$INDEXAR" = "1" ]; then
