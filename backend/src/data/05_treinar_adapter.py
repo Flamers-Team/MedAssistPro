@@ -36,7 +36,7 @@ EPOCAS = float(os.getenv("EPOCAS", "3"))
 LR = float(os.getenv("LR", "1e-4"))
 
 ARQUIVO = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("data/processed/dados_internos_anonimizado.jsonl")
-SAIDA = Path(sys.argv[2]) if len(sys.argv) > 2 else Path("/opt/medassist/adapter-v2")
+SAIDA = Path(sys.argv[2]) if len(sys.argv) > 2 else Path("/opt/medassist/biomistral-medassist-lora")
 
 # Mesmo template do fine-tuning original (notebooks/02_finetuning.ipynb).
 ALPACA = (

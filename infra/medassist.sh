@@ -34,6 +34,16 @@ INSTALAÇÃO
   --treinar         gera o dataset interno, anonimiza, treina o adapter e passa
                     a usar o modelo novo (~5 min)
 
+MODELO QUE O SITE USA
+  --modelo publicado   usa o adapter publicado (michelleAnogueira/biomistral-
+                       medquad-lora), treinado só com MedQuAD. É o "antes"
+  --modelo treinado    usa o adapter treinado nesta máquina
+                       (biomistral-medassist-lora), com MedQuAD + dados
+                       internos do hospital. É o "depois"
+
+                       A troca leva segundos. A primeira consulta depois dela
+                       demora ~2 min, porque o modelo é carregado.
+
 QUEM PODE ABRIR O SITE
   Regra única, sempre substituída. Não é tocada por --ligar nem --preparar.
 
@@ -54,6 +64,7 @@ SEQUÊNCIA PARA GRAVAR O ANTES E O DEPOIS DO FINE-TUNING
   ... grave a consulta: é o ANTES
   ./medassist.sh --treinar        # 3 min, dá para filmar a perda caindo
   ... repita a mesma consulta: é o DEPOIS
+  ./medassist.sh --modelo publicado   # volta ao "antes", para regravar
 
 Ligada custa cerca de US$ 0,80 por hora. Desligada, só disco e IP.
 Usa o seu login do SSO. Se expirar: aws sso login --profile selvs
@@ -106,6 +117,13 @@ _preparar() {
     "[\"echo $b64 | base64 -d > /root/preparar_maquina.sh\",\"chmod +x /root/preparar_maquina.sh\",\"/root/preparar_maquina.sh$opcoes\"]"
 }
 
+# Troca o adapter que o serviço da API usa.
+_trocar_modelo() {
+  local ref="$1"
+  _remoto "Apontando o site para: $ref" \
+    "[\"sed -i 's|^Environment=LLM_MODEL=.*|Environment=LLM_MODEL=$ref|' /etc/systemd/system/medassist-api.service\",\"systemctl daemon-reload\",\"systemctl restart medassist-api\",\"grep LLM_MODEL /etc/systemd/system/medassist-api.service\"]"
+}
+
 # IP público de quem está rodando o comando.
 _meu_ip() {
   curl -s --max-time 10 https://checkip.amazonaws.com | tr -d '[:space:]'
@@ -133,6 +151,13 @@ while [ $# -gt 0 ]; do
     --help|-h)      ajuda; exit 0 ;;
     --status|--ligar|--desligar|--conectar|--logs|--liberar-publico) ACOES+=("$1") ;;
     --preparar)     PREPARAR=1 ;;
+    --modelo)
+      case "${2:-}" in
+        publicado) MODELO_REF="michelleAnogueira/biomistral-medquad-lora" ;;
+        treinado)  MODELO_REF="/opt/medassist/biomistral-medassist-lora" ;;
+        *) echo "Use: --modelo publicado   ou   --modelo treinado" >&2; exit 1 ;;
+      esac
+      ACOES+=("--modelo"); shift ;;
     --indexar-rag)  EXTRAS="$EXTRAS --indexar-rag" ;;
     --treinar)      EXTRAS="$EXTRAS --treinar" ;;
     --liberar-ip)   shift; while [ $# -gt 0 ] && [[ "$1" != --* ]]; do IPS+=("$1"); shift; done; ACOES+=("--liberar-ip"); continue ;;
@@ -183,6 +208,7 @@ for acao in ${ACOES[@]+"${ACOES[@]}"}; do
       ;;
     --conectar) aws ssm start-session --target "$(_id)" --region "$REGIAO" ;;
     --logs)     _remoto "Logs da API:" '["journalctl -u medassist-api -n 40 --no-pager"]' ;;
+    --modelo)   _trocar_modelo "$MODELO_REF" ;;
     --liberar-publico) _regra_acesso '["0.0.0.0/0"]' "Liberando o site para a internet inteira..." ;;
     --liberar-ip)
       if [ ${#IPS[@]} -eq 0 ]; then

@@ -22,7 +22,8 @@ VENV="$RAIZ/venv"
 PYTHON_BASE=/opt/pytorch/bin/python      # ambiente com PyTorch e CUDA da imagem Deep Learning
 DOMINIO="${DOMINIO:-medassist.ia4.dev}"
 MODELO="${MODELO:-michelleAnogueira/biomistral-medquad-lora}"
-ADAPTER_TREINADO="$RAIZ/adapter-v2"
+# Adapter treinado nesta máquina, com MedQuAD + dados internos do hospital.
+ADAPTER_TREINADO="$RAIZ/biomistral-medassist-lora"
 INDEXAR=0
 TREINAR=0
 APENAS=0
