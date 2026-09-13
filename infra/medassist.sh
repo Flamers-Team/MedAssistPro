@@ -132,43 +132,55 @@ _modelo_atual() {
     --query "StandardOutputContent" --output text 2>/dev/null | tr -d '[:space:]' || echo "-"
 }
 
-# Roda comandos dentro da máquina e mostra a saída.
+# Roda comandos dentro da máquina, mostrando a saída enquanto ela acontece.
+# O SSM não transmite em tempo real, então buscamos a saída parcial de tempos
+# em tempos e imprimimos só o que for novo. Sem isso, uma preparação de 20
+# minutos ficaria em silêncio até o fim.
 _remoto() {
-  local descricao="$1"; shift
+  local descricao="$1" comandos="$2"
   local id; id="$(_id)"
   echo "$descricao"
+
   local cmd
   cmd=$(aws ssm send-command --region "$REGIAO" --instance-ids "$id" \
     --document-name "AWS-RunShellScript" --timeout-seconds 7200 \
-    --parameters "commands=$1" --query "Command.CommandId" --output text)
-  until aws ssm wait command-executed --command-id "$cmd" --instance-id "$id" --region "$REGIAO" 2>/dev/null; do
-    local estado; estado=$(aws ssm get-command-invocation --command-id "$cmd" --instance-id "$id" --region "$REGIAO" --query "Status" --output text)
-    echo "  ... $estado"
-    [ "$estado" = "InProgress" ] || break
+    --parameters "commands=$comandos" --query "Command.CommandId" --output text)
+
+  local impresso=0 estado="Pending" saida novas
+  while : ; do
+    saida=$(aws ssm get-command-invocation --command-id "$cmd" --instance-id "$id" \
+      --region "$REGIAO" --query "StandardOutputContent" --output text 2>/dev/null || true)
+    if [ -n "$saida" ] && [ "$saida" != "None" ]; then
+      novas=$(printf '%s\n' "$saida" | tail -n +$((impresso + 1)))
+      if [ -n "$novas" ]; then
+        printf '%s\n' "$novas"
+        impresso=$(printf '%s\n' "$saida" | wc -l)
+      fi
+    fi
+
+    estado=$(aws ssm get-command-invocation --command-id "$cmd" --instance-id "$id" \
+      --region "$REGIAO" --query "Status" --output text 2>/dev/null || echo "Pending")
+    case "$estado" in
+      Pending|InProgress|Delayed)
+        # Espera até 100 s por mudança de estado, sem travar em sleep.
+        aws ssm wait command-executed --command-id "$cmd" --instance-id "$id" \
+          --region "$REGIAO" 2>/dev/null || true ;;
+      *) break ;;
+    esac
   done
-  aws ssm get-command-invocation --command-id "$cmd" --instance-id "$id" --region "$REGIAO" \
-    --query "StandardOutputContent" --output text | tail -40
-}
 
-# A máquina já passou pela preparação?
-_preparada() {
-  local id; id="$(_id)"
-  local cmd
-  cmd=$(aws ssm send-command --region "$REGIAO" --instance-ids "$id" \
-    --document-name "AWS-RunShellScript" \
-    --parameters 'commands=["test -f /etc/systemd/system/medassist-api.service && test -d /opt/medassist/app && echo sim || echo nao"]' \
-    --query "Command.CommandId" --output text 2>/dev/null) || return 1
-  aws ssm wait command-executed --command-id "$cmd" --instance-id "$id" --region "$REGIAO" 2>/dev/null || true
-  [ "$(aws ssm get-command-invocation --command-id "$cmd" --instance-id "$id" --region "$REGIAO" --query 'StandardOutputContent' --output text 2>/dev/null | tr -d '[:space:]')" = "sim" ]
-}
+  # Última leitura, para pegar o que saiu entre a penúltima consulta e o fim.
+  saida=$(aws ssm get-command-invocation --command-id "$cmd" --instance-id "$id" \
+    --region "$REGIAO" --query "StandardOutputContent" --output text 2>/dev/null || true)
+  novas=$(printf '%s\n' "$saida" | tail -n +$((impresso + 1)))
+  [ -n "$novas" ] && printf '%s\n' "$novas"
 
-# Roda a preparação dentro da máquina. Não mexe em quem pode abrir o site:
-# isso é assunto do --ip e do --publico.
-_preparar() {
-  local opcoes="${1:-}"
-  local b64; b64=$(base64 -w0 "$DIR/preparar_maquina.sh")
-  _remoto "Preparando a máquina$opcoes. Pode levar de 10 a 30 minutos." \
-    "[\"echo $b64 | base64 -d > /root/preparar_maquina.sh\",\"chmod +x /root/preparar_maquina.sh\",\"/root/preparar_maquina.sh$opcoes\"]"
+  if [ "$estado" != "Success" ]; then
+    echo "Comando terminou como: $estado" >&2
+    aws ssm get-command-invocation --command-id "$cmd" --instance-id "$id" \
+      --region "$REGIAO" --query "StandardErrorContent" --output text 2>/dev/null | tail -20 >&2
+    return 1
+  fi
 }
 
 # Troca o adapter que o serviço da API usa.
@@ -199,12 +211,14 @@ _regra_acesso() {
     --filters "Name=group-id,Values=$sg" \
     --query "SecurityGroupRules[?!IsEgress].SecurityGroupRuleId" --output text)
   if [ -n "$antigas" ] && [ "$antigas" != "None" ]; then
+    echo "  removendo as regras anteriores..."
     aws ec2 revoke-security-group-ingress --region "$REGIAO" --group-id "$sg" \
       --security-group-rule-ids $antigas >/dev/null
   fi
 
   local cidr
   for cidr in "$@"; do
+    echo "  liberando portas 80 e 443 para $cidr..."
     aws ec2 authorize-security-group-ingress --region "$REGIAO" --group-id "$sg" \
       --ip-permissions \
         "IpProtocol=tcp,FromPort=80,ToPort=80,IpRanges=[{CidrIp=$cidr,Description=HTTP}]" \
@@ -302,10 +316,16 @@ for acao in ${ACOES[@]+"${ACOES[@]}"}; do
     --ligar)
       ID="$(_id)"; echo "Ligando $ID..."
       aws ec2 start-instances --instance-ids "$ID" --region "$REGIAO" >/dev/null
+      echo "  aguardando a máquina iniciar..."
       aws ec2 wait instance-running --instance-ids "$ID" --region "$REGIAO"
+      echo "  máquina iniciada. Aguardando as checagens da AWS (leva ~1 min)..."
       aws ec2 wait instance-status-ok --instance-ids "$ID" --region "$REGIAO"
+      echo "  checagens concluídas."
+      if [ "$PREPARAR" = "0" ]; then
+        echo "  verificando se a máquina já foi preparada..."
+      fi
       if [ "$PREPARAR" = "0" ] && ! _preparada; then
-        echo "Máquina ainda não preparada. Preparando agora..."
+        echo "Máquina ainda não preparada. Preparando agora (10 a 30 min, com andamento abaixo)..."
         _preparar ""
       fi
       echo "Pronta: https://$DOMINIO"
@@ -314,6 +334,7 @@ for acao in ${ACOES[@]+"${ACOES[@]}"}; do
     --desligar)
       ID="$(_id)"; echo "Desligando $ID..."
       aws ec2 stop-instances --instance-ids "$ID" --region "$REGIAO" >/dev/null
+      echo "  aguardando a máquina parar..."
       aws ec2 wait instance-stopped --instance-ids "$ID" --region "$REGIAO"
       echo "Desligada. Para de cobrar por hora; disco e IP continuam."
       ;;
