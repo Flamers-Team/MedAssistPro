@@ -55,9 +55,10 @@ QUEM PODE ABRIR O SITE
   Regra única, sempre substituída. Não é tocada por --ligar nem --preparar.
 
   --liberar-publico libera para a internet inteira, apagando as regras de IP
-  --liberar-ip [CIDR...]
-                    libera só os IPs informados, apagando a regra pública e as
-                    anteriores. Sem argumento, usa o IP de quem rodou o comando.
+  --liberar-ip [IP...]
+                    libera só os endereços informados, apagando a regra pública
+                    e as anteriores. Sem argumento, usa o IP de quem rodou o
+                    comando. A máscara é opcional: 189.1.2.3 vira 189.1.2.3/32.
                     Ex.: --liberar-ip   ou   --liberar-ip 200.1.2.0/24
 
 DIA A DIA
@@ -218,6 +219,9 @@ _regra_acesso() {
 
   local cidr
   for cidr in "$@"; do
+    # Aceita o endereço sem máscara: 189.1.2.3 vira 189.1.2.3/32.
+    case "$cidr" in *[!0-9./]*) echo "Endereço inválido: $cidr" >&2; exit 1 ;; esac
+    case "$cidr" in */*) : ;; *) cidr="$cidr/32" ;; esac
     echo "  liberando portas 80 e 443 para $cidr..."
     aws ec2 authorize-security-group-ingress --region "$REGIAO" --group-id "$sg" \
       --ip-permissions \
@@ -225,7 +229,7 @@ _regra_acesso() {
         "IpProtocol=tcp,FromPort=443,ToPort=443,IpRanges=[{CidrIp=$cidr,Description=HTTPS}]" \
       >/dev/null
   done
-  echo "regra atual: $*"
+  echo "regra atual: $(_regras_atuais)"
 }
 
 # Posição atual da máquina. Vai para a tela e, na esteira, para o resumo.
