@@ -46,6 +46,8 @@ chroma_internal/
 # === DATASETS GRANDES ===
 # Dados brutos e processados com PHI potencial
 data/raw/*.jsonl
+# Exceção: dataset sintético de dados internos, exigido pelo enunciado
+!data/raw/dados_internos_hospital.jsonl
 data/raw/*.csv
 data/raw/*.xml
 data/raw/*.zip
@@ -175,3 +177,11 @@ docs/index.html
 
 # Script setup (regenerável, baixa dados públicos)
 scripts/setup_data_colab.py
+
+# === TERRAFORM (infra/) ===
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfvars
+crash.log

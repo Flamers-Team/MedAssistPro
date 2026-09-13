@@ -135,7 +135,15 @@ class LLMClient:
                 bnb_4bit_compute_dtype=torch.bfloat16,
             )
 
-        self.tokenizer = AutoTokenizer.from_pretrained(self.lora_ref)
+        # O tokenizer publicado junto do adapter pode ter sido salvo por uma
+        # versao do transformers mais nova que a instalada (ex.: classe
+        # "TokenizersBackend"). Nesse caso cai para o tokenizer do modelo base,
+        # que tem o mesmo vocabulario.
+        try:
+            self.tokenizer = AutoTokenizer.from_pretrained(self.lora_ref)
+        except Exception as e:  # noqa: BLE001
+            print(f"Tokenizer do adapter nao carregou ({e}); usando o do modelo base.")
+            self.tokenizer = AutoTokenizer.from_pretrained(self._candidate_bases()[0])
         if self.tokenizer.pad_token_id is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
 

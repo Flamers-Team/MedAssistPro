@@ -1,0 +1,28 @@
+======================================================================
+RELATÓRIO DE CURADORIA — Passo 1: Anonimização MedQuAD
+Gerado em: 2026-09-13 01:13:17
+======================================================================
+
+📊 ESTATÍSTICAS GERAIS
+----------------------------------------------------------------------
+  Linhas lidas (entrada):               42
+  Linhas escritas (saída):              42
+  Taxa de aproveitamento:          100.00%
+
+🗑️  DESCARTE POR FILTRO DE QUALIDADE
+----------------------------------------------------------------------
+  TOTAL DESCARTADAS                        0
+
+🔒 PHI/PII SUBSTITUÍDO POR TIPO
+----------------------------------------------------------------------
+  Nenhum PHI detectado.
+
+📋 CONFIGURAÇÃO
+----------------------------------------------------------------------
+  Input:  ../data/raw/dados_internos_hospital.jsonl
+  Output: ../data/processed/dados_internos_anonimizado.jsonl
+  Patterns ativos: 9
+
+======================================================================
+✅ Curadoria concluída.
+======================================================================

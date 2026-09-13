@@ -1,0 +1,31 @@
+# Caddy do MedAssistPro.
+#
+# Um endereço só: a interface React (compilada em frontend/dist) responde na
+# raiz, e tudo que começa com /api ou /health vai para a API FastAPI, que fica
+# na porta 8000 e não é exposta para fora.
+#
+# O certificado HTTPS é emitido e renovado automaticamente pelo Caddy.
+#
+# Instalar em /etc/caddy/Caddyfile e recarregar com:
+#   sudo systemctl reload caddy
+
+medassist.ia4.dev {
+	encode gzip
+
+	# Chamadas de API
+	@api path /api/* /health
+	handle @api {
+		reverse_proxy 127.0.0.1:8000
+	}
+
+	# Interface React
+	handle {
+		root * /opt/medassist/frontend/dist
+		try_files {path} /index.html
+		file_server
+	}
+
+	log {
+		output file /var/log/caddy/medassist.log
+	}
+}
