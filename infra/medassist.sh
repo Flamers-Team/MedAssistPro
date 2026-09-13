@@ -184,6 +184,27 @@ _remoto() {
   fi
 }
 
+# A máquina já passou pela preparação?
+_preparada() {
+  local id; id="$(_id)"
+  local cmd
+  cmd=$(aws ssm send-command --region "$REGIAO" --instance-ids "$id" \
+    --document-name "AWS-RunShellScript" \
+    --parameters 'commands=["test -f /etc/systemd/system/medassist-api.service && test -d /opt/medassist/app && echo sim || echo nao"]' \
+    --query "Command.CommandId" --output text 2>/dev/null) || return 1
+  aws ssm wait command-executed --command-id "$cmd" --instance-id "$id" --region "$REGIAO" 2>/dev/null || true
+  [ "$(aws ssm get-command-invocation --command-id "$cmd" --instance-id "$id" --region "$REGIAO" --query 'StandardOutputContent' --output text 2>/dev/null | tr -d '[:space:]')" = "sim" ]
+}
+
+# Roda a preparação dentro da máquina. Não mexe em quem pode abrir o site:
+# isso é assunto do --liberar-ip e do --liberar-publico.
+_preparar() {
+  local opcoes="${1:-}"
+  local b64; b64=$(base64 -w0 "$DIR/preparar_maquina.sh")
+  _remoto "Preparando a máquina$opcoes. Pode levar de 10 a 30 minutos." \
+    "[\"echo $b64 | base64 -d > /root/preparar_maquina.sh\",\"chmod +x /root/preparar_maquina.sh\",\"/root/preparar_maquina.sh$opcoes\"]"
+}
+
 # Troca o adapter que o serviço da API usa.
 _trocar_modelo() {
   local ref="$1"
