@@ -23,20 +23,19 @@ MÁQUINA
   --logs            últimas linhas do serviço da API
 
 INSTALAÇÃO
-  --indexar-rag e --treinar exigem uma máquina já preparada e rodam isoladamente,
-  em momentos distintos. Se ela não estiver preparada, falham em vez de instalar.
+  --indexar-rag e --treinar exigem uma máquina já preparada e rodam
+  isoladamente. Se ela não estiver preparada, falham em vez de instalar.
 
   --preparar        instala e configura tudo: pacotes, Node, Caddy, código do
-                    projeto, arquivos do Git LFS, ambiente Python, interface
-                    compilada, serviço da API e download do modelo. Repetir não
-                    quebra nada (~10 min)
+                    projeto, arquivos do Git LFS, ambiente Python, interface,
+                    serviço da API e modelo. Repetir não quebra nada (~10 min)
   --indexar-rag     constrói o índice do RAG com 10 mil bulas (~10 min)
   --treinar         gera o dataset interno, anonimiza, treina o adapter e passa
                     a usar o modelo novo (~5 min)
 
 MODELO QUE O SITE USA
-  A troca reinicia a API, que leva ~2 min carregando o modelo. Faça a troca
-  antes de começar a gravar.
+  A troca já deixa o modelo carregado e respondendo, então leva ~3 min. Depois
+  dela, a primeira consulta sai direto.
 
   --modelo biomistral-medquad-lora
                     treinado só com MedQuAD, e publicado no HuggingFace por
@@ -126,8 +125,10 @@ _preparar() {
 # Troca o adapter que o serviço da API usa.
 _trocar_modelo() {
   local ref="$1"
-  _remoto "Apontando o site para: $ref" \
-    "[\"sed -i 's|^Environment=LLM_MODEL=.*|Environment=LLM_MODEL=$ref|' /etc/systemd/system/medassist-api.service\",\"systemctl daemon-reload\",\"systemctl restart medassist-api\",\"grep LLM_MODEL /etc/systemd/system/medassist-api.service\"]"
+  # Troca, reinicia e aquece: a carga do modelo (~2 min) acontece aqui, e não
+  # na primeira consulta de quem for usar ou gravar.
+  _remoto "Apontando o site para: $ref (inclui o carregamento do modelo)" \
+    "[\"sed -i 's|^Environment=LLM_MODEL=.*|Environment=LLM_MODEL=$ref|' /etc/systemd/system/medassist-api.service\",\"systemctl daemon-reload\",\"systemctl restart medassist-api\",\"grep LLM_MODEL /etc/systemd/system/medassist-api.service\",\"curl -s --retry 60 --retry-delay 5 --retry-all-errors --max-time 600 -o /dev/null http://127.0.0.1:8000/health && echo 'API respondendo'\",\"curl -s --max-time 900 -o /dev/null -X POST http://127.0.0.1:8000/api/consulta -H 'Content-Type: application/json' -d '{\\\"relato\\\":\\\"Paciente com febre e tosse ha tres dias, sem dispneia.\\\"}' && echo 'Modelo carregado e respondendo.'\"]"
 }
 
 # IP público de quem está rodando o comando.
