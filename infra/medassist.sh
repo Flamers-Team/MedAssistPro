@@ -76,11 +76,53 @@ Usa o seu login do SSO. Se expirar: aws sso login --profile selvs
 AJUDA
 }
 
+NOME="${NOME:-medassist}"
+DOMINIO="${DOMINIO:-medassist.ia4.dev}"
+
+# A máquina e o grupo de segurança são achados pela etiqueta, sem depender do
+# Terraform. Assim o mesmo script serve aqui e na esteira do GitHub.
 _id() {
-  terraform -chdir="$DIR" output -raw instancia_id 2>/dev/null || {
-    echo "Infraestrutura ainda não criada. Rode: terraform -chdir=$DIR apply" >&2
+  local id
+  id=$(aws ec2 describe-instances --region "$REGIAO" \
+    --filters "Name=tag:Name,Values=$NOME-gpu" \
+              "Name=instance-state-name,Values=pending,running,stopping,stopped" \
+    --query "Reservations[0].Instances[0].InstanceId" --output text 2>/dev/null)
+  if [ -z "$id" ] || [ "$id" = "None" ]; then
+    echo "Máquina '$NOME-gpu' não encontrada. Crie com: terraform -chdir=$DIR apply" >&2
     exit 1
-  }
+  fi
+  echo "$id"
+}
+
+_grupo() {
+  aws ec2 describe-security-groups --region "$REGIAO" \
+    --filters "Name=group-name,Values=$NOME-instancia" \
+    --query "SecurityGroups[0].GroupId" --output text
+}
+
+_ip_publico() {
+  aws ec2 describe-instances --instance-ids "$(_id)" --region "$REGIAO" \
+    --query "Reservations[0].Instances[0].PublicIpAddress" --output text
+}
+
+_regras_atuais() {
+  # Uma regra por porta, então o mesmo CIDR aparece duas vezes: mostra sem repetir.
+  aws ec2 describe-security-group-rules --region "$REGIAO" \
+    --filters "Name=group-id,Values=$(_grupo)" \
+    --query "SecurityGroupRules[?!IsEgress].CidrIpv4" --output text \
+    | tr '\t' '\n' | sort -u | paste -sd' '
+}
+
+_modelo_atual() {
+  local id; id="$(_id)"
+  local cmd
+  cmd=$(aws ssm send-command --region "$REGIAO" --instance-ids "$id" \
+    --document-name "AWS-RunShellScript" \
+    --parameters 'commands=["grep -oP \"(?<=^Environment=LLM_MODEL=).*\" /etc/systemd/system/medassist-api.service 2>/dev/null || echo -"]' \
+    --query "Command.CommandId" --output text 2>/dev/null) || { echo "-"; return; }
+  aws ssm wait command-executed --command-id "$cmd" --instance-id "$id" --region "$REGIAO" 2>/dev/null || true
+  aws ssm get-command-invocation --command-id "$cmd" --instance-id "$id" --region "$REGIAO" \
+    --query "StandardOutputContent" --output text 2>/dev/null | tr -d '[:space:]' || echo "-"
 }
 
 # Roda comandos dentro da máquina e mostra a saída.
@@ -138,12 +180,68 @@ _meu_ip() {
 
 # Grava a regra de acesso e aplica. Sempre substitui a regra anterior:
 # rodar de novo com outro valor apaga o que existia antes (idempotente).
+# Regra única: apaga todas as entradas e recria com os CIDRs informados.
+# Feito pela API da AWS (não pelo Terraform), para a esteira poder usar.
 _regra_acesso() {
-  local lista="$1" descricao="$2"
+  local descricao="$1"; shift
+  local sg; sg="$(_grupo)"
   echo "$descricao"
-  printf 'ips_liberados = %s\n' "$lista" > "$DIR/acesso.auto.tfvars"
-  terraform -chdir="$DIR" apply -auto-approve -var="ips_liberados=$lista" | tail -3
-  echo "regra atual: $lista"
+
+  local antigas
+  antigas=$(aws ec2 describe-security-group-rules --region "$REGIAO" \
+    --filters "Name=group-id,Values=$sg" \
+    --query "SecurityGroupRules[?!IsEgress].SecurityGroupRuleId" --output text)
+  if [ -n "$antigas" ] && [ "$antigas" != "None" ]; then
+    aws ec2 revoke-security-group-ingress --region "$REGIAO" --group-id "$sg" \
+      --security-group-rule-ids $antigas >/dev/null
+  fi
+
+  local cidr
+  for cidr in "$@"; do
+    aws ec2 authorize-security-group-ingress --region "$REGIAO" --group-id "$sg" \
+      --ip-permissions \
+        "IpProtocol=tcp,FromPort=80,ToPort=80,IpRanges=[{CidrIp=$cidr,Description=HTTP}]" \
+        "IpProtocol=tcp,FromPort=443,ToPort=443,IpRanges=[{CidrIp=$cidr,Description=HTTPS}]" \
+      >/dev/null
+  done
+  echo "regra atual: $*"
+}
+
+# Posição atual da máquina. Vai para a tela e, na esteira, para o resumo.
+_status() {
+  local id estado ip modelo regras
+  id="$(_id)"
+  estado=$(aws ec2 describe-instances --instance-ids "$id" --region "$REGIAO" \
+    --query 'Reservations[0].Instances[0].State.Name' --output text)
+  ip="$(_ip_publico)"
+  regras="$(_regras_atuais)"
+  [ -n "$regras" ] || regras="nenhum IP liberado"
+  if [ "$estado" = "running" ]; then modelo="$(_modelo_atual)"; else modelo="(máquina desligada)"; fi
+
+  printf '%-18s %s\n' \
+    "instância:" "$id" \
+    "estado:" "$estado" \
+    "endereço:" "https://$DOMINIO" \
+    "ip fixo:" "$ip" \
+    "modelo em uso:" "$modelo" \
+    "quem abre o site:" "$regras"
+
+  # Na esteira do GitHub, a mesma posição vai para o resumo da execução.
+  if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+    {
+      echo "### Posição do ambiente"
+      echo
+      echo "| item | valor |"
+      echo "|---|---|"
+      echo "| instância | \`$id\` |"
+      echo "| estado | **$estado** |"
+      echo "| endereço | https://$DOMINIO |"
+      echo "| ip fixo | $ip |"
+      echo "| modelo em uso | \`$modelo\` |"
+      echo "| quem abre o site | $regras |"
+      echo
+    } >> "$GITHUB_STEP_SUMMARY"
+  fi
 }
 
 [ $# -eq 0 ] && { ajuda; exit 0; }
@@ -189,14 +287,11 @@ elif [ -n "$EXTRAS" ]; then
   _preparar " --apenas$EXTRAS"
 fi
 
+EXECUTOU=0
 for acao in ${ACOES[@]+"${ACOES[@]}"}; do
+  EXECUTOU=1
   case "$acao" in
-    --status)
-      echo "instância: $(_id)"
-      echo "estado:    $(aws ec2 describe-instances --instance-ids "$(_id)" --region "$REGIAO" --query 'Reservations[0].Instances[0].State.Name' --output text)"
-      echo "endereço:  $(terraform -chdir="$DIR" output -raw endereco 2>/dev/null || echo '-')"
-      echo "ip fixo:   $(terraform -chdir="$DIR" output -raw ip_publico 2>/dev/null || echo '-')"
-      ;;
+    --status) _status ;;
     --ligar)
       ID="$(_id)"; echo "Ligando $ID..."
       aws ec2 start-instances --instance-ids "$ID" --region "$REGIAO" >/dev/null
@@ -206,7 +301,7 @@ for acao in ${ACOES[@]+"${ACOES[@]}"}; do
         echo "Máquina ainda não preparada. Preparando agora..."
         _preparar ""
       fi
-      echo "Pronta: $(terraform -chdir="$DIR" output -raw endereco)"
+      echo "Pronta: https://$DOMINIO"
       echo "⚠️  Lembre de desligar ao terminar: ./medassist.sh --desligar"
       ;;
     --desligar)
@@ -218,7 +313,7 @@ for acao in ${ACOES[@]+"${ACOES[@]}"}; do
     --conectar) aws ssm start-session --target "$(_id)" --region "$REGIAO" ;;
     --logs)     _remoto "Logs da API:" '["journalctl -u medassist-api -n 40 --no-pager"]' ;;
     --modelo)   _trocar_modelo "$MODELO_REF" ;;
-    --liberar-publico) _regra_acesso '["0.0.0.0/0"]' "Liberando o site para a internet inteira..." ;;
+    --liberar-publico) _regra_acesso "Liberando o site para a internet inteira..." "0.0.0.0/0" ;;
     --liberar-ip)
       if [ ${#IPS[@]} -eq 0 ]; then
         MEU_IP=$(_meu_ip)
@@ -226,8 +321,13 @@ for acao in ${ACOES[@]+"${ACOES[@]}"}; do
         IPS=("$MEU_IP/32")
         echo "IP detectado: $MEU_IP"
       fi
-      LISTA=$(printf '"%s",' "${IPS[@]}"); LISTA="[${LISTA%,}]"
-      _regra_acesso "$LISTA" "Restringindo o site aos IPs informados..."
+      _regra_acesso "Restringindo o site aos IPs informados..." "${IPS[@]}"
       ;;
   esac
 done
+
+# Toda execução termina mostrando a posição do ambiente.
+if [ "$PREPARAR" = "1" ] || [ -n "$EXTRAS" ] || { [ "${EXECUTOU:-0}" = "1" ] && ! printf '%s\n' ${ACOES[@]+"${ACOES[@]}"} | grep -q '^--status$'; }; then
+  echo
+  _status
+fi

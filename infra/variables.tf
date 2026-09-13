@@ -34,12 +34,6 @@ variable "subdominio" {
   default     = "medassist"
 }
 
-variable "ips_liberados" {
-  description = "Quem pode abrir a aplicação, em notação CIDR. Padrão: internet inteira, para a equipe e o professor acessarem. Restringir com [\"189.1.2.3/32\"] quando não estiver em uso."
-  type        = list(string)
-  default     = ["0.0.0.0/0"]
-}
-
 variable "minutos_ociosidade" {
   description = "Minutos de CPU baixa antes do desligamento automático."
   type        = number

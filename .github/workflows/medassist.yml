@@ -1,0 +1,94 @@
+# Esteira de operação do ambiente MedAssistPro.
+#
+# Ela NÃO cria nem destrói infraestrutura: isso continua sendo feito por quem
+# tem permissão de administrador, rodando Terraform na própria máquina.
+# Aqui só o dia a dia: ligar, desligar, preparar, indexar, treinar, trocar o
+# modelo e mudar quem pode abrir o site.
+#
+# Autenticação por OIDC: o GitHub assume um papel na AWS na hora da execução,
+# sem chave guardada em segredo.
+#
+# Configuração necessária no repositório:
+#   - variável AWS_ROLE_ARN  (papel que esta esteira assume)
+#   - variável AWS_REGION    (opcional, padrão us-east-1)
+
+name: MedAssist
+
+on:
+  workflow_dispatch:
+    inputs:
+      acao:
+        description: "O que fazer"
+        required: true
+        type: choice
+        default: status
+        options:
+          - status
+          - ligar
+          - desligar
+          - preparar
+          - indexar-rag
+          - treinar
+          - modelo
+          - liberar-publico
+          - liberar-ip
+      valor:
+        description: "Só para 'modelo' (nome do adapter) e 'liberar-ip' (CIDR; vazio = IP do runner)"
+        required: false
+        type: string
+
+concurrency:
+  group: medassist-ambiente
+  cancel-in-progress: false
+
+permissions:
+  id-token: write   # necessário para o OIDC
+  contents: read
+
+jobs:
+  operar:
+    name: ${{ inputs.acao }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Autenticar na AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+      - name: Executar
+        env:
+          AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+          ACAO: ${{ inputs.acao }}
+          VALOR: ${{ inputs.valor }}
+        run: |
+          set -euo pipefail
+          cd infra
+          case "$ACAO" in
+            modelo)
+              [ -n "$VALOR" ] || { echo "::error::Informe o nome do adapter no campo 'valor'."; exit 1; }
+              ./medassist.sh --modelo "$VALOR" ;;
+            liberar-ip)
+              if [ -n "$VALOR" ]; then ./medassist.sh --liberar-ip $VALOR; else ./medassist.sh --liberar-ip; fi ;;
+            *)
+              ./medassist.sh "--$ACAO" ;;
+          esac
+
+      - name: Registrar a ação no resumo
+        if: always()
+        run: |
+          {
+            echo "### Ação"
+            echo
+            echo "| campo | valor |"
+            echo "|---|---|"
+            echo "| ação | \`${{ inputs.acao }}\` |"
+            echo "| valor | \`${{ inputs.valor || '-' }}\` |"
+            echo "| resultado | ${{ job.status }} |"
+            echo "| quem disparou | @${{ github.actor }} |"
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"

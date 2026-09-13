@@ -77,6 +77,17 @@ Quem pode abrir o site é uma regra única, sempre substituída:
 A preparação e o `--ligar` não mexem nessa regra: quem pode abrir o site é decisão
 separada, tomada só por `--ip` e `--publico`.
 
+## Esteira no GitHub
+
+Há um fluxo em `.github/workflows/medassist.yml` com as mesmas opções deste
+script, para quem não tem credencial da AWS na máquina. Ele **não cria nem
+destrói infraestrutura**: só opera.
+
+Antes do primeiro uso, crie o papel descrito em [`iam/README.md`](iam/README.md)
+e cadastre a variável `AWS_ROLE_ARN` no repositório.
+
+Toda execução termina escrevendo no resumo a posição do ambiente.
+
 ## Apagar tudo no fim do projeto
 
 ```bash

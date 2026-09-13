@@ -8,30 +8,11 @@ resource "aws_security_group" "instancia" {
   tags = { Name = "${var.nome}-instancia" }
 }
 
-# HTTPS: é por onde medassist.ia4.dev responde.
-resource "aws_vpc_security_group_ingress_rule" "https" {
-  for_each = toset(var.ips_liberados)
-
-  security_group_id = aws_security_group.instancia.id
-  cidr_ipv4         = each.value
-  from_port         = 443
-  to_port           = 443
-  ip_protocol       = "tcp"
-  description       = "HTTPS para ${each.value}"
-}
-
-# HTTP: redireciona para HTTPS e serve para o Caddy validar o certificado
-# junto ao Let's Encrypt. Por isso acompanha a mesma liberação da 443.
-resource "aws_vpc_security_group_ingress_rule" "http" {
-  for_each = toset(var.ips_liberados)
-
-  security_group_id = aws_security_group.instancia.id
-  cidr_ipv4         = each.value
-  from_port         = 80
-  to_port           = 80
-  ip_protocol       = "tcp"
-  description       = "HTTP para ${each.value}"
-}
+# As regras de entrada (portas 80 e 443) NÃO são gerenciadas aqui.
+# Quem abre e fecha é o medassist.sh (--liberar-publico / --liberar-ip), que
+# usa a API da AWS. Assim o script e a esteira mudam o acesso sem rodar
+# Terraform, e um `terraform apply` não desfaz a regra em vigor.
+# A máquina nasce fechada: nenhuma porta de entrada até alguém liberar.
 
 resource "aws_vpc_security_group_egress_rule" "saida" {
   security_group_id = aws_security_group.instancia.id

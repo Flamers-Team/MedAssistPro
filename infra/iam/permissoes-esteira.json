@@ -1,0 +1,61 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "VerAmbiente",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DescribeInstances",
+        "ec2:DescribeInstanceStatus",
+        "ec2:DescribeSecurityGroups",
+        "ec2:DescribeSecurityGroupRules",
+        "ssm:DescribeInstanceInformation",
+        "ssm:GetCommandInvocation",
+        "ssm:ListCommandInvocations"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "LigarEDesligarSomenteEstaMaquina",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:StartInstances",
+        "ec2:StopInstances"
+      ],
+      "Resource": "arn:aws:ec2:us-east-1:481665095044:instance/*",
+      "Condition": {
+        "StringEquals": {
+          "ec2:ResourceTag/Projeto": "MedAssistPro"
+        }
+      }
+    },
+    {
+      "Sid": "FirewallSomenteDesteGrupo",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:AuthorizeSecurityGroupIngress",
+        "ec2:RevokeSecurityGroupIngress"
+      ],
+      "Resource": "arn:aws:ec2:us-east-1:481665095044:security-group/*",
+      "Condition": {
+        "StringEquals": {
+          "ec2:ResourceTag/Projeto": "MedAssistPro"
+        }
+      }
+    },
+    {
+      "Sid": "RodarComandosDentroDaMaquina",
+      "Effect": "Allow",
+      "Action": "ssm:SendCommand",
+      "Resource": [
+        "arn:aws:ssm:us-east-1::document/AWS-RunShellScript",
+        "arn:aws:ec2:us-east-1:481665095044:instance/*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "ssm:resourceTag/Projeto": "MedAssistPro"
+        }
+      }
+    }
+  ]
+}
