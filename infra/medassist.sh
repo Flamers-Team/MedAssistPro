@@ -20,21 +20,14 @@ MÁQUINA
   --logs            últimas linhas do serviço da API
 
 INSTALAÇÃO
-  --preparar        já restringe o site ao seu IP e instala tudo na máquina:
-                    pacotes, Node, Caddy,
-                    código do projeto, arquivos do Git LFS, ambiente Python,
-                    interface compilada, serviço da API e download do modelo.
-                    É o passo obrigatório depois de criar a máquina, e pode ser
-                    repetido sem quebrar nada. (~10 min)
+  --preparar        restringe o site ao seu IP e instala tudo na máquina:
+                    pacotes, Node, Caddy, código do projeto, arquivos do Git
+                    LFS, ambiente Python, interface compilada, serviço da API e
+                    download do modelo. É o passo obrigatório depois de criar a
+                    máquina, e pode ser repetido sem quebrar nada. (~10 min)
   --indexar-rag     constrói o índice do RAG com 10 mil bulas (+10 min)
   --treinar         gera o dataset interno, anonimiza, treina o adapter e passa
                     a usar o modelo novo (+5 min)
-
-MODO DO SITE (muda o comportamento do site publicado)
-  --ativar-mock     respostas sintéticas, sem carregar o modelo. Rápido, serve
-                    para demonstrar o fluxo sem GPU.
-  --ativar-gpu      respostas do modelo real, na GPU. Primeira chamada leva
-                    cerca de 2 minutos, porque o modelo é carregado.
 
 QUEM PODE ABRIR O SITE (regra única, sempre substituída)
   --publico         libera para a internet inteira, apagando as regras de IP
@@ -45,8 +38,6 @@ QUEM PODE ABRIR O SITE (regra única, sempre substituída)
 EXEMPLOS
   ./medassist.sh --status
   ./medassist.sh --preparar --indexar-rag --treinar     # máquina nova, completa
-  ./medassist.sh --ativar-mock                          # site sem GPU
-  ./medassist.sh --ativar-gpu                           # site com o modelo real
   ./medassist.sh --ip                                   # só o seu IP abre o site
   ./medassist.sh --publico                              # volta a liberar geral
   ./medassist.sh --desligar
@@ -95,12 +86,6 @@ _regra_acesso() {
   echo "regra atual: $lista"
 }
 
-# Troca o modo do serviço da API (mock ou GPU) e reinicia.
-_modo() {
-  local mock="$1" descricao="$2"
-  _remoto "$descricao" "[\"sed -i 's/^Environment=LLM_MOCK=.*/Environment=LLM_MOCK=$mock/' /etc/systemd/system/medassist-api.service\",\"systemctl daemon-reload\",\"systemctl restart medassist-api\",\"grep Environment /etc/systemd/system/medassist-api.service\"]"
-}
-
 [ $# -eq 0 ] && { ajuda; exit 0; }
 
 PREPARAR=0
@@ -111,7 +96,7 @@ IPS=()
 while [ $# -gt 0 ]; do
   case "$1" in
     --help|-h)      ajuda; exit 0 ;;
-    --status|--ligar|--desligar|--conectar|--logs|--publico|--ativar-mock|--ativar-gpu) ACOES+=("$1") ;;
+    --status|--ligar|--desligar|--conectar|--logs|--publico) ACOES+=("$1") ;;
     --preparar)     PREPARAR=1 ;;
     --indexar-rag)  PREPARAR=1; OPCOES_PREPARO="$OPCOES_PREPARO --indexar-rag" ;;
     --treinar)      PREPARAR=1; OPCOES_PREPARO="$OPCOES_PREPARO --treinar" ;;
@@ -119,11 +104,6 @@ while [ $# -gt 0 ]; do
     *) echo "opção desconhecida: $1" >&2; echo; ajuda; exit 1 ;;
   esac
   shift
-done
-
-# Se pediu mock junto da preparação, o modelo nem é baixado.
-for a in ${ACOES[@]+"${ACOES[@]}"}; do
-  [ "$a" = "--ativar-mock" ] && [ "$PREPARAR" = "1" ] && OPCOES_PREPARO="$OPCOES_PREPARO --mock"
 done
 
 if [ "$PREPARAR" = "1" ]; then
@@ -166,8 +146,6 @@ for acao in ${ACOES[@]+"${ACOES[@]}"}; do
       ;;
     --conectar) aws ssm start-session --target "$(_id)" --region "$REGIAO" ;;
     --logs)     _remoto "Logs da API:" '["journalctl -u medassist-api -n 40 --no-pager"]' ;;
-    --ativar-mock) _modo 1 "Trocando o site para modo mock..." ;;
-    --ativar-gpu)  _modo 0 "Trocando o site para o modelo real na GPU..." ;;
     --publico) _regra_acesso '["0.0.0.0/0"]' "Liberando o site para a internet inteira..." ;;
     --ip)
       if [ ${#IPS[@]} -eq 0 ]; then

@@ -9,7 +9,6 @@
 # Opções:
 #   --indexar        constrói o índice do RAG (10 mil bulas, ~10 min na GPU)
 #   --treinar        treina o adapter com os dados internos (~3 min na GPU)
-#   --mock           sobe a API em modo mock, sem carregar o modelo
 #   --modelo <ref>   adapter a usar (padrão: o publicado no HuggingFace)
 #   --repo <url>     repositório a clonar
 set -euo pipefail
@@ -24,13 +23,13 @@ MODELO="${MODELO:-michelleAnogueira/biomistral-medquad-lora}"
 ADAPTER_TREINADO="$RAIZ/adapter-v2"
 INDEXAR=0
 TREINAR=0
-MOCK=0
+MOCK=0   # o modo mock existe no código (LLM_MOCK) para testes e uso sem GPU,
+         # mas nesta máquina, que é só GPU, a API sobe sempre com o modelo real.
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --indexar-rag|--indexar) INDEXAR=1 ;;
     --treinar) TREINAR=1 ;;
-    --mock)    MOCK=1 ;;
     --modelo)  MODELO="$2"; shift ;;
     --repo)    REPO="$2"; shift ;;
     *) echo "opção desconhecida: $1" >&2; exit 1 ;;
@@ -97,13 +96,9 @@ if [ "$TREINAR" = "0" ] && [ "$MODELO" = "michelleAnogueira/biomistral-medquad-l
 fi
 
 etapa "6/8 Modelo"
-if [ "$MOCK" = "1" ]; then
-  echo "modo mock: nenhum modelo baixado"
-else
-  su - ubuntu -c "$VENV/bin/hf download BioMistral/BioMistral-7B" >/dev/null
-  su - ubuntu -c "$VENV/bin/hf download $MODELO" >/dev/null 2>&1 || echo "aviso: '$MODELO' não é um repositório do HuggingFace (deve ser um caminho local)"
-  echo "modelo base e adapter em cache"
-fi
+su - ubuntu -c "$VENV/bin/hf download BioMistral/BioMistral-7B" >/dev/null
+su - ubuntu -c "$VENV/bin/hf download $MODELO" >/dev/null 2>&1 || echo "aviso: '$MODELO' não é um repositório do HuggingFace (deve ser um caminho local)"
+echo "modelo base e adapter em cache"
 
 etapa "7/8 RAG"
 if [ "$INDEXAR" = "1" ]; then
