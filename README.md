@@ -3,9 +3,24 @@
 Pipeline completo: **Fine-tuning de BioMistral-7B** + **RAG (PMC + Base Interna)** + **LangGraph** + **HITL** + **Tradução PT-BR** + **Geração de Documentos Médicos**.
 
 > **Tech Challenge FIAP** — Fase 3 | [Entrega final do módulo de IA para Dev]
->
-> **Status atual**: ✅ Fine-tuning concluído (perplexidade validação 2.18, base 4.31 — **redução de 49.4%**). ✅ Modelo validado com 15 testes de generalização. ✅ Tradução PT-BR implementada. ✅ **RAG substituído pelo ChatBulário** (10k bulas PT-BR indexadas). ⏳ Pendente: testar tradutor no Colab + gravar vídeo demo.
 
+
+## 👥 Equipe — Flamers Team 🔥
+
+| Membro | RM |
+|---|---|
+| 🔥 Flávio Oscar Hahn | 374132 |
+| 🔥 Larissa Gomes do Vale Cabrerisso Machado | 370911 |
+| 🔥 Michelle Almeida Nogueira Rodrigues | 372291 |
+| 🔥 Ramon Silva | 373445 |
+| 🔥 Selvino Wilmar Rodrigues Junior | 368570 |
+
+---
+
+### Acesso ao vídeo de demonstração: 
+Link: 
+
+---
 ## 🎯 Visão Geral
 
 Assistente médico que combina:
@@ -108,7 +123,7 @@ com protocolos do hospital, perguntas frequentes de médicos e modelos de laudo,
 receita e procedimento. Conteúdo sintético, sem validação clínica.
 
 A comparação entre os dois está na seção 5.6 do
-[relatório técnico](docs/RELATORIO_TECNICO_PARA_EQUIPE.md).
+[relatório técnico](docs/RELATORIO_TECNICO.md).
 
 ## 📋 Requisitos Atendidos
 
@@ -287,19 +302,7 @@ A documentação está organizada em **3 níveis** (do leigo ao avançado):
 
 - **[`docs/TECHCHALLENGE_FASE3_PROJETO_COMPLETO.docx`](docs/TECHCHALLENGE_FASE3_PROJETO_COMPLETO.docx)** — Documento técnico de ~60 páginas com todos os detalhes acadêmicos.
 
-## 👥 Equipe — Flamers Team 🔥
 
-Este projeto foi desenvolvido em equipe por alunos da FIAP, sem hierarquia formal (sem líder técnica). Todos os membros contribuíram igualmente nas diferentes etapas.
-
-| Membro | RM |
-|---|---|
-| 🔥 Flávio Oscar Hahn | 374132 |
-| 🔥 Larissa Gomes do Vale Cabrerisso Machado | 370911 |
-| 🔥 Michelle Almeida Nogueira Rodrigues | 372291 |
-| 🔥 Ramon Silva | 373445 |
-| 🔥 Selvino Wilmar Rodrigues Junior | 368570 |
-
----
 
 ## 🎓 Contexto Acadêmico
 
