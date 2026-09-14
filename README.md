@@ -18,7 +18,7 @@ Pipeline completo: **Fine-tuning de BioMistral-7B** + **RAG (PMC + Base Interna)
 ---
 
 ### Acesso ao vídeo de demonstração: 
-Link: 
+Link: https://www.youtube.com/watch?v=gccl8p37_ck
 
 ---
 ## 🎯 Visão Geral
