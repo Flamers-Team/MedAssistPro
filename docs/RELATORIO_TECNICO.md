@@ -3,7 +3,6 @@
 
 ## Equipe
 
-Este projeto foi desenvolvido em equipe por alunos da FIAP, sem hierarquia formal (sem líder técnica). Todos os membros contribuíram igualmente nas diferentes etapas do projeto.
 
 | Membro | RM |
 |---|---|
@@ -18,8 +17,9 @@ Este projeto foi desenvolvido em equipe por alunos da FIAP, sem hierarquia forma
   
 **Organização**: Flamers Team  
 **Repositório**: https://github.com/Flamers-Team/MedAssistPro (branch `main`)
-**Data**: Agosto 2026  
-**Status**: ✅ Fine-tuning concluído, modelo validado. Pendente: deploy/demo.
+**Data**: Setembro 2026  
+**Status**:  Fine-tuning concluído (MedQuAD + dados internos do hospital), modelo validado, ambiente de demonstração no ar na AWS. 
+**Video de Demonstração**: 
 
 ---
 
@@ -32,12 +32,9 @@ Este projeto foi desenvolvido em equipe por alunos da FIAP, sem hierarquia forma
 5. [Validação do Modelo](#5-validação-do-modelo) ⭐
 6. [Tradução PT-BR ↔ EN](#6-tradução-pt-br--en) ⭐ NOVO
 7. [Arquitetura do Sistema (Componentes)](#7-arquitetura-do-sistema-componentes)
-8. [O Que Já Foi Feito vs O Que Falta](#8-o-que-já-foi-feito-vs-o-que-falta) ⭐
-9. [Cronograma Final](#9-cronograma-final) ⭐
-10. [Conformidade e Boas Práticas](#10-conformidade-e-boas-práticas)
-11. [Contatos e Recursos](#11-contatos-e-recursos)
-12. [Anexo: Comandos Úteis](#12-anexo-comandos-úteis)
-13. [Deploy da LLM: Colab Pro como Serviço de Inferência (API)](#13-deploy-da-llm-colab-pro-como-serviço-de-inferência-api) ⭐ NOVO
+8. [Manual de Operação — Rodando a Plataforma pelo GitHub Actions](#8-manual-de-operação--rodando-a-plataforma-pelo-github-actions) ⭐ NOVO
+9. [Conformidade e Boas Práticas](#9-conformidade-e-boas-práticas)
+10. [Contatos e Recursos](#10-contatos-e-recursos)
 
 ---
 
@@ -661,398 +658,165 @@ class AssistenteTraduzido:
 ### 7.1. Estrutura do Repositório
 
 ```
-MedAssistPro/                           (GitHub: Flamers-Team/MedAssistPro)
-├── README.md                            Documentação principal
-├── .gitignore                           Proteção contra dados sensíveis
-├── .gitattributes                       Git LFS para datasets grandes
+MedAssistPro/                              (GitHub: Flamers-Team/MedAssistPro)
+├── README.md                              Documentação principal, com diagrama do fluxo LangGraph
+├── plano_entrega.md                       Checklist de progresso frente ao enunciado
+├── 8IADT - Fase 3 - Tech challenge.pdf    Enunciado oficial da FIAP
+├── .github/workflows/medassist.yml        Esteira que opera o ambiente na AWS (liga, desliga, treina...)
 ├── docs/
-│   ├── RELATORIO_TECNICO_PARA_EQUIPE.md  Este documento
-│   ├── GUIA_DATASETS.md                 Instruções de download dos datasets
-│   ├── MANUAL_UI.md                     Manual da interface React
-│   └── TECHCHALLENGE_FASE3_PROJETO_COMPLETO.docx   (~60 páginas)
+│   ├── RELATORIO_TECNICO_PARA_EQUIPE.md   Este documento
+│   ├── GUIA_DATASETS.md                   Guia resumido dos datasets usados
+│   └── AMBIENTE_AWS.md                    O que foi entregue na infraestrutura da AWS
+├── infra/                                 Infraestrutura como código (Terraform) + esteira
+│   ├── *.tf                               Instância, rede, IAM, saídas
+│   ├── medassist.sh                       Script de operação (ligar, desligar, treinar, trocar modelo...)
+│   ├── preparar_maquina.sh                Instalação reprodutível da máquina
+│   ├── Caddyfile                          Proxy HTTPS (interface + API no mesmo domínio)
+│   └── iam/                               Papel e permissões da esteira do GitHub (OIDC)
+├── backend/
+│   ├── requirements.txt / requirements-dev.txt
+│   ├── src/
+│   │   ├── api/app.py                     Rotas FastAPI (login, consulta, decisão, auditoria, documentos)
+│   │   ├── agents/                        3 agentes: triagem, sintese, validacao
+│   │   ├── graph/                         Orquestração LangGraph (state, nodes, tools, workflow)
+│   │   ├── llm/                           client.py (BioMistral+LoRA), langchain_client.py, tradutor.py
+│   │   ├── rag/                           retriever.py + scripts de indexação (ChatBulário, CID-10...)
+│   │   ├── logging/                       Auditoria (schemas, audit, decorators, dashboard)
+│   │   ├── docs/generator.py              Geração de PDFs (ReportLab)
+│   │   └── data/                          Pipeline de dados: anonimização, split, geração e treino
+│   │       └── dados_internos/            Dataset sintético interno do hospital (protocolos, dúvidas, modelos)
+│   └── tests/                             Testes automatizados (pytest)
+├── frontend/
+│   ├── package.json                       React 18 + Vite 5
+│   └── src/
+│       ├── App.jsx                        Componente raiz (login + abas)
+│       ├── api/client.js                  Chamadas HTTP ao backend
+│       └── components/                    LoginCard, ConsultaPanel, AuditPanel, DocumentPanel, ConfigPanel
 ├── notebooks/
-│   ├── 02_finetuning.ipynb              Notebook Colab Pro (A100) - 814 linhas
-│   └── 13_test_generalizacao.ipynb      Testes de validação
-├── src/
-│   ├── data/                            Pipeline de dados
-│   │   ├── 01_anonimizar.py             Anonimização MedQuAD
-│   │   ├── 02_normalizar_e_split.py     Normalização + split 90/5/5
-│   │   ├── 03_validar_qualidade.py      Validação qualitativa
-│   │   └── 04_anonimizar_synthetic.py   Anonimização Synthetic Notes
-│   ├── rag/
-│   │   └── build_index_local.py         Indexa ChromaDB
-│   ├── llm/
-│   │   ├── cliente.py                   Cliente LLM base
-│   │   ├── assistente_traduzido.py      Com tradução PT-BR ⭐
-│   │   └── assistente_traduzido_cpu.py  Versão CPU
-│   ├── agents/                          3 agentes LangGraph
-│   │   ├── triagem.py
-│   │   ├── sintese.py
-│   │   └── validacao.py
-│   ├── graph/                           Orquestração LangGraph
-│   │   ├── state.py
-│   │   ├── nodes.py
-│   │   └── workflow.py
-│   ├── logging/                         Auditoria completa
-│   │   ├── schemas.py
-│   │   ├── audit.py
-│   │   ├── decorators.py
-│   │   └── dashboard.py
-└── frontend/                          Frontend React + Vite
-    ├── package.json                   Deps: react, vite
-    ├── vite.config.js                 Configuração Vite (porta 3000)
-    ├── index.html                     HTML raiz
-    └── src/
-        ├── main.jsx                   Entry point React 18
-        ├── App.jsx                    Componente principal (4 abas)
-        └── styles.css                 Tema dark + estilos
-└── data/                                (gitignored - não versionado)
-    ├── raw/                             Datasets brutos
-    └── processed/                       Datasets anonimizados + ChromaDB
+│   ├── 02_finetuning.ipynb                Fine-tuning inicial no Colab Pro (MedQuAD)
+│   └── rodarcolab.ipynb                   Roda o assistente completo no Colab (sem GPU própria)
+├── scripts/setup_data_colab.py            Baixa todos os datasets públicos automaticamente
+└── data/                                  (gitignored — não versionado)
+    ├── raw/                               Datasets brutos
+    └── processed/                         Datasets anonimizados, checkpoints do LangGraph e índice ChromaDB
 ```
 
 ### 7.2. Stack Tecnológica Completa
 
-| Camada | Tecnologia | Versão |
+| Camada | Tecnologia | Observação |
 |---|---|---|
-| **LLM Base** | BioMistral-7B (Mistral-7B + PubMed) | — |
-| **Fine-tuning** | TRL + PEFT + bitsandbytes + Unsloth | TRL 0.10.0, PEFT 0.10.0 |
-| **Quantização** | QLoRA 4-bit | — |
-| **Tokenizer** | LlamaTokenizerFast (vocab=32k) | — |
-| **Vector Store** | ChromaDB | 0.5.5 |
-| **Embeddings** | sentence-transformers/all-MiniLM-L6-v2 | — |
-| **Tradução** | MarianMT (Helsinki-NLP/opus-mt-tc-big) | — |
-| **Orquestração** | LangChain + LangGraph | 0.3.0 / 0.2.19 |
-| **Auditoria** | SQLite + Loguru | Python 3.11 |
-| **GPU alvo** | NVIDIA A100 (40GB) Colab Pro | — |
-| **Frontend** | React + Vite | 18.3.1 / 5.4.10 |
-| **Bundler** | Vite (dev server + build) | 5.4.10 |
+| **API / Backend** | FastAPI + Uvicorn | `backend/src/api/app.py` |
+| **Orquestração** | LangGraph + LangChain-core | Grafo de 7 nós, com HITL via `interrupt()` / `Command(resume=...)` |
+| **Persistência do grafo** | langgraph-checkpoint-sqlite | Permite retomar o fluxo depois da pausa do HITL, entre duas chamadas HTTP |
+| **LLM Base** | BioMistral-7B (Mistral-7B + PubMed) | Carregado em 4-bit (QLoRA) via `transformers` + `peft` + `bitsandbytes` |
+| **Fine-tuning inicial (MedQuAD)** | Unsloth + TRL + PEFT, no Google Colab Pro (GPU A100) | `notebooks/02_finetuning.ipynb` → gera o adapter `biomistral-medquad-lora` |
+| **Fine-tuning contínuo (dados internos)** | `transformers.Trainer` + PEFT (QLoRA 4-bit), direto na máquina da AWS | `backend/src/data/05_treinar_adapter.py` → gera o adapter `biomistral-medassist-lora` |
+| **Vector Store (RAG)** | ChromaDB | 3 coleções: ChatBulário (10 mil bulas), CID-10, notas clínicas sintéticas |
+| **Embeddings** | sentence-transformers (`all-MiniLM-L6-v2`) | — |
+| **Tradução PT-BR ↔ EN** | MarianMT (Helsinki-NLP) | `backend/src/llm/tradutor.py` |
+| **Geração de documentos** | ReportLab | `backend/src/docs/generator.py` |
+| **Auditoria** | SQLite + Loguru | Um evento de auditoria por etapa concluída do grafo |
+| **Frontend** | React 18 + Vite 5 | Sem Redux; estado local via `useState` |
+| **Testes** | pytest (backend) + Vitest/React Testing Library (frontend) | `backend/tests/`, `frontend/src/**/*.test.*` |
+| **Infraestrutura (AWS)** | Terraform, instância `g6.xlarge` (GPU L4, 24 GB), Caddy (HTTPS automático) | `infra/` |
+| **Operação do ambiente** | GitHub Actions, autenticação OIDC (sem chave fixa) | `.github/workflows/medassist.yml` — detalhes na seção 8 |
 
 ---
 
-## 8. O Que Já Foi Feito vs O Que Falta ⭐
+## 8. Manual de Operação — Rodando a Plataforma pelo GitHub Actions
 
-### ✅ JÁ FEITO
+Esta seção documenta como qualquer pessoa da equipe liga, desliga e opera o ambiente real (com GPU, na AWS) sem precisar de credenciais da AWS na própria máquina — tudo é feito por uma esteira (workflow) do GitHub Actions.
 
-| # | Etapa | Status | Local |
-|---|---|---|---|
-| 1 | Análise do PDF do Tech Challenge | ✅ | — |
-| 2 | Download + anonimização MedQuAD | ✅ | `src/data/01_anonimizar.py` |
-| 3 | Normalização + split 90/5/5 | ✅ | `src/data/02_normalizar_e_split.py` |
-| 4 | Validação qualitativa (93.5/100) | ✅ | `src/data/03_validar_qualidade.py` |
-| 5 | Anonimização Synthetic Notes | ✅ | `src/data/04_anonimizar_synthetic.py` |
-| 6 | Download datasets (MedQuAD, ChatBulário, CID-10, Synthetic) | ✅ | `data/raw/` |
-| 7 | Indexação ChromaDB (3 vector stores: ChatBulário + CID-10 + Synthetic) | ✅ | `data/processed/chroma_index/` |
-| 8 | Notebook de fine-tuning (814 linhas) | ✅ | `notebooks/02_finetuning.ipynb` |
-| 9 | Fine-tuning executado no Colab Pro | ✅ | Drive: `biomistral-medquad-lora/` |
-| 10 | Avaliação perplexity (1.80) | ✅ | `eval_results_qualitativo.json` |
-| 11 | 15 testes de generalização | ✅ | `test_generalizacao.json` |
-| 12 | Comparação FINE-TUNED vs BASE | ✅ | `notebooks/02_finetuning.ipynb` SEÇÃO 13 |
-| 13 | Script de tradução PT-BR ↔ EN | ✅ | `src/llm/assistente_traduzido.py` |
-| 14 | Repositório GitHub (privado) | ✅ | `Flamers-Team/MedAssistPro` |
-| 15 | Git LFS para datasets grandes | ✅ | `.gitattributes` |
-| 16 | 3 agentes LangGraph | ✅ | `src/agents/` |
-| 17 | Orquestração LangGraph | ✅ | `src/graph/` |
-| 18 | Logging SQLite + decorador | ✅ | `src/logging/` |
-| 19 | UI React (4 abas) | ✅ | `frontend/src/App.jsx` |
-| 20 | README + documentação | ✅ | `README.md`, `docs/` |
-| 21 | Relatório DOCX técnico | ✅ | `docs/*.docx` |
-| 22 | DOCX atualizado para equipe | ✅ | `RELATORIO_TECNICO_EQUIPE_FINAL.docx` |
-| 23 | Substituição ANVISA → ChatBulário (10k bulas PT-BR) | ✅ | `src/rag/build_index_chatbulario.py` |
-| 24 | Remoção dos mocks PMC (fontes inventadas) | ✅ | `src/rag/retriever.py` |
-| 25 | Tratamento de erro robusto (RuntimeError) | ✅ | `src/rag/retriever.py` |
-| 26 | Modelo publicado no HuggingFace (público) | ✅ | `michelleAnogueira/biomistral-medquad-lora` |
-| 27 | Space Static no HuggingFace | ✅ | `michelleAnogueira/techchalleng3-demo` |
-| 28 | Script setup_data_colab.py (baixa dados automaticamente) | ✅ | `scripts/setup_data_colab.py` |
-| 29 | Notebook `rodarcolab.ipynb` corrigido (patches + caminhos) | ✅ | `notebooks/rodarcolab.ipynb` |
-| 30 | UI React migrada de Gradio | ✅ | `frontend/src/App.jsx` |
+### 8.1. Como funciona
 
-### ⏳ PENDENTE
+- Workflow: `.github/workflows/medassist.yml`, chamado **MedAssist**.
+- Autenticação por **OIDC**: o GitHub assume um papel temporário na AWS na hora da execução — não existe chave de acesso guardada em segredo.
+- A esteira **não cria nem destrói infraestrutura** (isso continua sendo feito por Terraform, manualmente, por quem tem permissão de administrador). Ela só opera o dia a dia: ligar, desligar, preparar, indexar o RAG, treinar, trocar o modelo e definir quem pode acessar o site.
+- Configuração necessária no repositório (feita uma única vez, por quem administra): variáveis `AWS_ROLE_ARN` e `AWS_REGION`, e o papel de IAM descrito em `infra/iam/README.md`.
+- Concorrência: só uma execução por vez (`concurrency: group: medassist-ambiente`) — uma segunda execução disparada antes da primeira terminar fica na fila, não roda em paralelo.
 
-| # | Etapa | Tempo Est. | Prioridade |
-|---|---|---|---|
-| 1 | **Gravar vídeo demo (≤15min)** | 2h | 🔴 Alta |
-| 2 | **ReportLab para PDFs reais (atestado, receita)** | 2h | 🟡 Média |
-| 3 | **Substituir mocks por chamadas reais** (`_mock_response` em `client.py`) | 2h | 🟡 Média |
-| 4 | **Refatorar `docs/generator.py`** (CRM hardcoded "12345-DF") | 1-2h | 🟡 Média |
-| 5 | **Testes integrados** end-to-end (UI + LLM + RAG + HITL + PDFs) | 1h | 🟡 Média |
-| 6 | **Limpar cache HuggingFace** local | 5 min | 🟢 Baixa |
-| 7 | **HuggingFace Spaces Gradio** (deploy com UI rodando 24/7) | 30 min | 🟢 Baixa (opcional, pago) |
+### 8.2. Passo a passo
 
----
+1. Acesse `github.com/Flamers-Team/MedAssistPro` → aba **Actions**.
+2. No menu à esquerda, clique em **MedAssist**.
+3. Clique em **Run workflow** (canto superior direito da lista de execuções).
+4. Preencha:
+   - **Use workflow from**: `main`.
+   - **O que fazer**: escolha a ação (tabela da seção 8.3).
+   - **valor**: só é usado por `modelo` (nome do adapter) e `liberar-ip` (CIDR; vazio libera o IP de quem disparou a execução — que, rodando pela esteira, é o IP do runner do GitHub, e não o de quem está assistindo em casa).
+5. Clique no botão verde **Run workflow**. Uma nova execução aparece no topo da lista; espere o ✓ verde antes de disparar a próxima ação (só existe uma máquina).
+6. Ao abrir a execução, a página **Summary** já mostra a tabela **"Posição do ambiente"**: instância, estado (`running`/`stopped`), endereço (`https://medassist.ia4.dev`), IP fixo, modelo em uso e quem pode abrir o site.
 
-## 9. Cronograma Final ⭐
+### 8.3. Ações disponíveis
 
-### 9.1. Para Entrega Hoje (URGENTE)
-
-| Hora | Atividade | Quem |
+| Ação | O que faz | Tempo aprox. |
 |---|---|---|
-| **+0h** | Testar tradutor no Colab (10 min de execução) | — |
-| **+0:30h** | Gravar tela mostrando: pergunta PT → resposta PT (5 min de vídeo) | — |
-| **+1h** | Gravar demo completo do projeto (15 min) | — |
-| **+3h** | Editar + gerar DOCX final atualizado | — |
-| **+4h** | Submeter no portal FIAP | — |
+| `status` | Mostra o estado atual, sem alterar nada | poucos segundos |
+| `ligar` | Liga a instância; se ainda não estiver preparada, prepara sozinha | 2-5 min (10-30 min se precisar preparar) |
+| `desligar` | Desliga a instância — para a cobrança por hora | 1-2 min |
+| `preparar` | (Re)instala tudo: pacotes, Node, Caddy, código, ambiente Python, serviço da API e modelo | ~10 min |
+| `indexar-rag` | Reconstrói o índice do RAG (10 mil bulas + CID-10 + notas sintéticas) | ~10 min |
+| `treinar` | Gera o dataset interno, anonimiza, treina o adapter com os dados do hospital e já passa a usá-lo | ~5 min |
+| `modelo` | Troca o adapter em uso (valor: `biomistral-medquad-lora` = antes do fine-tuning interno, `biomistral-medassist-lora` = depois, ou outro repositório do HuggingFace) | ~3 min (recarrega o modelo) |
+| `liberar-publico` | Libera o site (portas 80/443) para toda a internet | ~30 seg |
+| `liberar-ip` | Restringe o acesso a um IP/CIDR específico (valor opcional) | ~30 seg |
 
-### 9.2. Para Entrega Completa (1 semana)
+### 8.4. Sequência típica de uso
 
-| Dia | Atividade |
+```
+ligar → indexar-rag (se o índice mudou) → treinar (se houver dados novos) →
+liberar-publico ou liberar-ip → usar o site → desligar
+```
+
+### 8.5. Custo
+
+| Situação | Custo aproximado |
 |---|---|
-| **Dia 1 (hoje)** | Testar tradutor + gravar demo + DOCX final |
-| **Dia 2** | Substituir mocks por chamadas reais |
-| **Dia 3** | ReportLab para geração de PDFs reais |
-| **Dia 4** | README completo + instruções de instalação |
-| **Dia 5** | Deploy HuggingFace Spaces (opcional) |
-| **Dia 6-7** | Buffer para ajustes finais |
+| Ligada | US$ 0,80/hora |
+| Desligada | ~US$ 0,39/dia (disco + IP fixo) |
+| Destruída (`terraform destroy`) | zero |
+
+**Regra prática: sempre rodar `desligar` ao terminar de usar** — é o único jeito de parar a cobrança por hora. O alarme de ociosidade (desliga sozinho após 30 min de CPU baixa) é uma rede de segurança, não um substituto.
+
+Detalhes adicionais (troubleshooting, permissões do papel de IAM, limites do certificado HTTPS) estão em `infra/README.md` e `docs/AMBIENTE_AWS.md`.
 
 ---
 
-## 10. Conformidade e Boas Práticas
+## 9. Conformidade e Boas Práticas
 
-### 10.1. LGPD
+### 9.1. LGPD
 
-- ✅ Dados sintéticos (Synthetic Clinical Notes) explicitamente anonimizados
+- ✅ Dados sintéticos (Synthetic Clinical Notes e dados internos do hospital) explicitamente anonimizados
 - ✅ MedQuAD é público (NIH) e passou por anonimização preventiva
 - ✅ Logs não armazenam PHI cru (apenas SHA256 hash + preview truncado)
-- ✅ Documentação de tratamento de dados em `src/data/01_anonimizar.py`
+- ✅ Documentação de tratamento de dados em `backend/src/data/01_anonimizar.py`
 
-### 10.2. Segurança do Assistente
+### 9.2. Segurança do Assistente
 
 - ✅ **HITL obrigatório**: médico sempre ratifica antes de documento ser gerado
-- ✅ **Citação de fonte**: cada resposta inclui `[Fonte: PMC-XXXX]` ou `[Fonte: SOP-XXX]`
+- ✅ **Citação de fonte**: cada resposta inclui a fonte usada (bula, CID-10 ou nota clínica)
 - ✅ **Disclaimer automático**: toda resposta inicia com aviso de validação humana
 - ✅ **Guardrails**: detecta tentativas de prescrição direta e adiciona aviso
 - ✅ **Auditoria completa**: todas as chamadas LLM/RAG logadas em SQLite
 
-### 10.3. Reprodutibilidade
+### 9.3. Reprodutibilidade
 
 - ✅ Seeds fixas (42) em todos os scripts
 - ✅ Versões de bibliotecas fixadas
 - ✅ `.gitignore` protege contra versionamento acidental de modelos/dados
+- ✅ Infraestrutura como código (Terraform), sem configuração manual na AWS
 
 ---
 
-## 11. Contatos e Recursos
+## 10. Contatos e Recursos
 
 - **Repositório**: https://github.com/Flamers-Team/MedAssistPro
 - **Branch principal**: `main`
 - **Issues/bugs**: abrir no GitHub Issues do repo
-- **Documentação adicional**: `docs/TECHCHALLENGE_FASE3_PROJETO_COMPLETO.docx`
 - **Guia de datasets**: `docs/GUIA_DATASETS.md`
-- **Manual da UI**: `docs/MANUAL_UI.md`
+- **Ambiente na AWS**: `docs/AMBIENTE_AWS.md` e `infra/README.md`
+- **Manual de operação pela esteira do GitHub**: seção 8 deste documento
 
 ---
 
-## 12. Anexo: Comandos Úteis
-
-### 12.1. Pipeline de Dados
-
-```bash
-# Anonimização MedQuAD
-python src/data/01_anonimizar.py
-
-# Normalização + split
-python src/data/02_normalizar_e_split.py
-
-# Validação qualitativa
-python src/data/03_validar_qualidade.py
-
-# Anonimização Synthetic Clinical Notes
-python src/data/04_anonimizar_synthetic.py
-```
-
-### 12.2. RAG
-
-```bash
-# Indexar ChatBulário + CID-10 + Synthetic no ChromaDB
-python src/rag/build_index_chatbulario.py 10000
-```
-
-### 12.3. Fine-Tuning (Colab Pro)
-
-```python
-# Abrir notebooks/02_finetuning.ipynb no Google Colab
-# Runtime → Change runtime type → A100 GPU
-# Executar células em ordem
-```
-
-### 12.4. Assistente Traduzido (PT-BR)
-
-```python
-from src.llm.assistente_traduzido import AssistenteTraduzido
-
-bot = AssistenteTraduzido(
-    modelo_path="biomistral-medquad-lora",  # ou caminho local
-    device="cuda",
-)
-print(bot.perguntar("O que é diabetes?"))
-```
-
-### 12.5. Logging
-
-```python
-from src.logging.audit import init_db, log_event
-from src.logging.schemas import LLMCallEvent
-from src.logging.decorators import audit_llm_call
-from src.logging.dashboard import dashboard_resumo
-
-# Inicializar banco
-init_db()
-
-# Ver resumo de atividade
-dashboard_resumo(horas=24)
-```
-
-### 12.6. Setup Completo no Google Colab (⭐ RECOMENDADO)
-
-**Notebook**: `notebooks/rodarcolab.ipynb` (32 células, ~15 min de execução)
-
-**O que faz**:
-1. Monta Google Drive
-2. Instala dependências (numpy, pydantic, chromadb, sentence-transformers, unsloth)
-3. Clona repositório
-4. Copia dados do Drive (`data/raw/` + `data/processed/chroma_index/`)
-5. Copia modelo LoRA do Drive
-6. Indexa ChatBulário se necessário (RAG)
-7. Patch chromadb (np.float_ → np.float64)
-8. Carrega RAG + LLM
-
-**Setup automático de dados** (alternativa):
-```bash
-# Baixa todos os datasets públicos automaticamente
-python scripts/setup_data_colab.py
-
-# Baixa: MedQuAD, ChatBulário, CID-10, Synthetic Notes
-# Tempo: ~10 min
-```
-
-**Frontend React** (rodar local após Colab):
-```bash
-cd frontend
-npm install
-npm run dev -- --host 127.0.0.1 --port 3000
-# Abre http://127.0.0.1:3000
-```
-
-**Caminhos importantes**:
-- Modelo fine-tuned: `/content/drive/MyDrive/techchallenge_fase3/biomistral-medquad-lora/`
-- Modelo copiado: `/content/MedAssistPro/biomistral-medquad-lora/`
-- ChromaDB: `/content/MedAssistPro/data/processed/chroma_index/`
-
----
-
-## 13. Deploy da LLM: Colab Pro como Serviço de Inferência (API) ⭐ NOVO
-
-Esta seção documenta como expor a LLM fine-tunada (que precisa de GPU) para as demais partes do projeto — o backend Python (RAG + agentes + auditoria) e o frontend React — quando não há GPU local disponível.
-
-### 13.1. Limitações do Google Colab (Pro incluso)
-
-O Colab Pro melhora a GPU (T4 / L4 / A100) e a estabilidade da sessão, mas **não muda a mecânica de rede**:
-
-- **Não abre porta pública**: não é possível apontar o navegador/backend para `IP_do_Colab:8000`. É preciso um **túnel** (Cloudflare, ngrok, ou o `share` do Gradio) para gerar uma URL HTTPS externa.
-- **Sessão efêmera**: cai por inatividade (~90 min) e tem limite total (~12–24 h). Quando a sessão morre, a API morre junto.
-- **Não existe "endpoint oficial de API do Colab"**: o padrão é sempre subir um servidor HTTP *dentro* do notebook e expô-lo por túnel.
-
-### 13.2. Opções avaliadas
-
-| # | Abordagem | Como funciona | Prós | Contras |
-|---|---|---|---|---|
-| 1 | **Gradio como API** | `demo.launch(share=True)` gera `xxx.gradio.live`. Cada evento vira endpoint; o backend chama via `gradio_client.Client(url).predict(...)` | Zero infra nova (já implementado) | Túnel `gradio.live` expira em 72 h, instável, schema "gradio-shaped" |
-| 2 | **FastAPI + Cloudflare Tunnel** | `uvicorn` em `127.0.0.1:8000` numa thread + `cloudflared tunnel --url http://localhost:8000` gera `https://xxx.trycloudflare.com` | REST próprio, grátis, sem cadastro | URL muda a cada sessão (repassar ao backend) |
-| 3 | **FastAPI + ngrok** | Igual, com `pyngrok` e authtoken | Fácil | Free: 1 túnel, tela de aviso, authtoken obrigatório |
-| 4 | **Cloudflare Tunnel nomeado** | Conta Cloudflare grátis + domínio → subdomínio fixo (`llm.dominio.com`) | URL estável entre sessões | Requer domínio próprio na Cloudflare |
-| 5 | **Sair do Colab** | HF Inference Endpoints / Modal / RunPod / Replicate (pagos) ou **Kaggle Notebooks** (GPU grátis, 30 h/semana, mesmo truque de túnel, costuma cair menos) | URL estável, não morre | Custo, ou setup adicional |
-
-### 13.3. Arquitetura recomendada — "LLM como microserviço"
-
-Só a **inferência** roda no Colab; o resto (RAG, agentes, `audit.db`, geração de PDF) roda localmente:
-
-```
-React (laptop)  ->  Backend FastAPI (local: RAG + agentes + auditoria + PDFs)
-                                  |  apenas o llm.invoke()
-                                  v
-                    Colab Pro (GPU): FastAPI /invoke  --cloudflared-->  https://xxx.trycloudflare.com
-```
-
-Vantagens: componentes leves ficam locais e rápidos; só o texto (prompt/resposta) trafega pela rede; o mesmo `src/llm/client.py` atende três modos — local, remoto e mock.
-
-### 13.4. Implementação no `rodarcolab.ipynb`
-
-> **Status**: proposta — ainda não commitada. As células abaixo são o que deve ser adicionado ao notebook.
-
-Célula A — após carregar o objeto `llm` (`LLMClient`), sobe a API numa thread:
-
-```python
-from fastapi import FastAPI
-from pydantic import BaseModel
-import uvicorn, threading, nest_asyncio
-
-api = FastAPI()
-
-class Req(BaseModel):
-    messages: list
-
-@api.get("/health")
-def health():
-    return {"ok": True, "mock": llm.use_mock}
-
-@api.post("/invoke")
-def invoke(r: Req):
-    return {"text": llm.invoke(r.messages)}
-
-nest_asyncio.apply()
-threading.Thread(
-    target=lambda: uvicorn.run(api, host="127.0.0.1", port=8000),
-    daemon=True,
-).start()
-```
-
-Célula B — cria o túnel público e imprime a URL:
-
-```python
-!wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -O /usr/local/bin/cloudflared && chmod +x /usr/local/bin/cloudflared
-import subprocess, re
-p = subprocess.Popen(
-    ["cloudflared", "tunnel", "--url", "http://localhost:8000"],
-    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
-)
-for line in p.stdout:
-    print(line, end="")
-    m = re.search(r"https://[-\w]+\.trycloudflare\.com", line)
-    if m:
-        print("\n>>> API PÚBLICA:", m.group(0))
-        break
-```
-
-### 13.5. Modo `remote` no `src/llm/client.py`
-
-> **Status**: proposta — ainda não commitada.
-
-Comportamento previsto: se a variável de ambiente `LLM_REMOTE_URL` estiver definida, o `LLMClient` **não carrega o modelo** — `invoke()` faz `requests.post(f"{LLM_REMOTE_URL}/invoke", json={"messages": messages})` e devolve o campo `text`.
-
-Assim o backend local roda normalmente, apenas definindo:
-
-```bash
-set LLM_REMOTE_URL=https://xxx.trycloudflare.com   # Windows (PowerShell: $env:LLM_REMOTE_URL="...")
-export LLM_REMOTE_URL=https://xxx.trycloudflare.com # Linux/Mac
-```
-
-Resumo dos modos do `LLMClient`:
-
-| Modo | Ativação | Uso |
-|---|---|---|
-| Local | default (com GPU) | Notebook Colab ou máquina com GPU |
-| Remoto | `LLM_REMOTE_URL` definida | Backend/CI local consumindo o Colab |
-| Mock | `LLM_MOCK=1` | Testar pipeline/UI sem GPU (respostas stub) |
-
-### 13.6. Dicas de operação no Colab
-
-- **Keep-alive**: sem interação a sessão cai em ~90 min. Manter uma célula com `while True: time.sleep(60)` rodando, ou o backend pingando `/health` a cada minuto.
-- **URL rotativa**: automatizar — a célula do túnel pode gravar a URL num arquivo no Drive, e o backend lê de lá no startup.
-- **CORS**: se o React chamar o Colab diretamente, adicionar `CORSMiddleware(allow_origins=["*"])` na `api` FastAPI.
-- **VRAM**: BioMistral-7B em 4-bit cabe em qualquer GPU do Colab (T4 de 16 GB inclusive); os tradutores MarianMT somam ~600 MB.
-
----
-
-**Relatório gerado em**: 09/09/2026
-**Versão do projeto**: 2.3 (frontend React + deploy da LLM via API no Colab)
-**Próxima atualização**: após deploy/demo
+**Versão do projeto**: 3.0 (backend/frontend consolidados, fine-tuning com dados internos do hospital, ambiente completo na AWS operado pelo GitHub Actions)
