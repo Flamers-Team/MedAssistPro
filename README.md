@@ -285,22 +285,9 @@ MIT — código aberto para fins acadêmicos.
 
 ## 📚 Documentação completa
 
-A documentação está organizada em **3 níveis** (do leigo ao avançado):
-
-### 📖 Para começar (NÍVEL 1 - Didático)
-
-- **[`docs/MANUAL_DIDATICO_PARA_EQUIPE.md`](docs/MANUAL_DIDATICO_PARA_EQUIPE.md)** — Explicado do zero, com analogias e diagramas. **Recomendado para quem não assistiu as aulas.**
-- **[`docs/MANUAL_DIDATICO_PARA_EQUIPE.docx`](docs/MANUAL_DIDATICO_PARA_EQUIPE.docx)** — Versão Word do mesmo.
-
-### 📋 Para usar (NÍVEL 2 - Prático)
-
-- **[`docs/RELATORIO_TECNICO_PARA_EQUIPE.md`](docs/RELATORIO_TECNICO_PARA_EQUIPE.md)** — Relatório técnico completo (30 KB).
-- **[`docs/MANUAL_UI.md`](docs/MANUAL_UI.md)** — Como usar a interface web (histórico da UI Gradio anterior à migração para React).
+- **[`docs/RELATORIO_TECNICO.md`](docs/RELATORIO_TECNICO.md)** — Relatório técnico completo.
 - **[`docs/GUIA_DATASETS.md`](docs/GUIA_DATASETS.md)** — Como baixar e preparar os datasets.
-
-### 🔬 Para aprofundar (NÍVEL 3 - Acadêmico)
-
-- **[`docs/TECHCHALLENGE_FASE3_PROJETO_COMPLETO.docx`](docs/TECHCHALLENGE_FASE3_PROJETO_COMPLETO.docx)** — Documento técnico de ~60 páginas com todos os detalhes acadêmicos.
+- **[`docs/AMBIENTE_AWS.md`](docs/AMBIENTE_AWS.md)** - Ambiente AWS 
 
 
 
