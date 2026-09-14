@@ -19,7 +19,7 @@
 **Repositório**: https://github.com/Flamers-Team/MedAssistPro (branch `main`)
 **Data**: Setembro 2026  
 **Status**:  Fine-tuning concluído (MedQuAD + dados internos do hospital), modelo validado, ambiente de demonstração no ar na AWS. 
-**Video de Demonstração**: 
+**Video de Demonstração**: Link: https://www.youtube.com/watch?v=gccl8p37_ck
 
 ---
 
