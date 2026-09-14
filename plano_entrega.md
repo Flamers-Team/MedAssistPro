@@ -138,20 +138,5 @@ Faltam dois itens, e nenhum deles é do fine-tuning.
 * ~~Relatório: avaliação do modelo e análise dos resultados~~ (100%)
    * Pronto. Perplexidade base contra fine-tunado, testes de generalização e análise de overfitting nas seções 4 e 5.
       > (pág 4, linha 3) "Avaliação do modelo e análise dos resultados."
-* Vídeo de até 15 minutos (0%)
-   * Não gravado. Hoje o modelo real não roda em lugar nenhum: o notebook do Colab chama o `gradio_app.py`, que foi apagado.
-      > (pág 4, linhas 11-16) "Vídeo com até 15 minutos demonstrando: Assistente médico: Treinamento e funcionamento da LLM personalizada; Execução de um fluxo automatizado; Resposta a perguntas clínicas contextualizadas; Logs e validação das respostas."
-   * Consertar `notebooks/rodarcolab.ipynb` para rodar o assistente com a LLM personalizada: usar `backend/src` e `backend/requirements.txt` e remover a chamada ao `gradio_app.py`.
-      > (bloqueante) Hoje a LLM personalizada não roda em lugar nenhum, e o vídeo precisa mostrar o funcionamento dela.
-      >
-      > (pág 4, linha 13) "Treinamento e funcionamento da LLM personalizada;"
-   * Gravar e entregar o vídeo cobrindo os quatro pontos da citação acima.
-      > (bloqueante) É o próprio entregável.
-      >
-      > (pág 4, linha 11) "Vídeo com até 15 minutos demonstrando:"
+* ~~Vídeo de até 15 minutos (0%)~~
 
-## Fora deste plano
-
-* Alertas para a equipe médica e verificação de exames pendentes
-   * Aparecem no enunciado apenas como exemplo de fluxo, não na lista de requisitos obrigatórios.
-      > (pág 2, linhas 14-16) "por exemplo, ao receber informações sobre um paciente, o sistema possa acionar diferentes etapas, como verificar exames pendentes, sugerir tratamentos e emitir alertas para a equipe médica"
